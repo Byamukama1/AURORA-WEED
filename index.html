@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Admin Dashboard · Aurora Weed</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Firebase SDKs (modular v9+) -->
+    <script type="module">
+        // -------------------------------------------------------------
+        // 1. FIREBASE INIT (NEW CREDENTIALS)
+        // -------------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // Your new Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiC0kYQY5EUzjrqHuU4GNdVEjsIp61tEI",
+            authDomain: "aurora-weed.firebaseapp.com",
+            projectId: "aurora-weed",
+            storageBucket: "aurora-weed.firebasestorage.app",
+            messagingSenderId: "306985359795",
+            appId: "1:306985359795:web:0c6178fe5579797bd213c6",
+            measurementId: "G-R3V55M351H"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        console.log("✅ Firebase initialized with new credentials");
+
+        // -------------------------------------------------------------
+        // 2. AUTH GUARD
+        // -------------------------------------------------------------
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+            console.log("✅ Admin logged in:", user.email);
+            document.getElementById('adminEmail').textContent = user.email;
+        });
+
+        // Logout
+        window.logout = async function() {
+            await signOut(auth);
+            window.location.href = "login.html";
+        };
+
+        // -------------------------------------------------------------
+        // 3. CLOUDINARY CONFIG
+        // -------------------------------------------------------------
+        const cloudinaryConfig = { cloudName: "dp81zzxlh", uploadPreset: "unsignedpreset" };
+        const CLOUD_URL = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
+
+        // -------------------------------------------------------------
+        // 4. UPLOAD IMAGE TO CLOUDINARY
+        // -------------------------------------------------------------
+        window.uploadToCloudinary = async function(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+            try {
+                const response = await fetch(CLOUD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                return data.secure_url;
+            } catch (error) {
+                console.error('Cloudinary upload error:', error);
+                return null;
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 5. COLLECTIONS & CRUD OPERATIONS
+        // -------------------------------------------------------------
+        const collections = ['deals', 'selling', 'users', 'youtube', 'products', 'investments', 'updates'];
+
+        // Load collection data
+        window.loadCollection = async function(collectionName) {
+            const container = document.getElementById('dataDisplay');
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            try {
+                const querySnapshot = await getDocs(collection(db, collectionName));
+                let html = `<div class="collection-header">
+                    <h3><i class="fas fa-database"></i> ${collectionName.toUpperCase()}</h3>
+                    <span class="count">${querySnapshot.size} documents</span>
+                </div>`;
+
+                if (querySnapshot.empty) {
+                    html += `<div class="empty-state"><i class="fas fa-inbox"></i> No documents in this collection</div>`;
+                } else {
+                    html += `<div class="table-wrapper"><table>
+                        <thead><tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Actions</th>
+                        </tr></thead><tbody>`;
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const dataStr = JSON.stringify(data, null, 2);
+                        const preview = dataStr.length > 100 ? dataStr.substring(0, 100) + '...' : dataStr;
+                        html += `
+                            <tr>
+                                <td class="doc-id">${doc.id.substring(0, 12)}...</td>
+                                <td><pre class="data-preview">${preview}</pre></td>
+                                <td class="actions-cell">
+                                    <button class="btn-sm btn-danger" onclick="deleteDocument('${collectionName}','${doc.id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    <button class="btn-sm btn-primary" onclick="viewDocument('${collectionName}','${doc.id}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+            }
+        };
+
+        // Delete document
+        window.deleteDocument = async function(collectionName, docId) {
+            if (!confirm(`Delete document ${docId} from ${collectionName}?`)) return;
+            try {
+                await deleteDoc(doc(db, collectionName, docId));
+                alert('✅ Document deleted successfully');
+                loadCollection(collectionName);
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        };
+
+        // View document (show full data)
+        window.viewDocument = async function(collectionName, docId) {
+            try {
+                const docRef = doc(db, collectionName, docId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const modal = document.getElementById('docModal');
+                    document.getElementById('modalTitle').textContent = `Document: ${docId}`;
+                    document.getElementById('modalContent').textContent = JSON.stringify(data, null, 2);
+                    modal.style.display = 'flex';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        };
+
+        // Close modal
+        window.closeModal = function() {
+            document.getElementById('docModal').style.display = 'none';
+        };
+
+        // -------------------------------------------------------------
+        // 6. ADD DOCUMENT FORM (with Cloudinary upload)
+        // -------------------------------------------------------------
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const collectionName = document.getElementById('formCollection').value;
+            const docData = document.getElementById('formData').value;
+            const imageFile = document.getElementById('formImage').files[0];
+
+            if (!collectionName || !docData) {
+                alert('Please select a collection and enter data');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#addForm button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+            try {
+                let data = JSON.parse(docData);
+
+                // Upload image to Cloudinary if provided
+                if (imageFile) {
+                    const imageUrl = await uploadToCloudinary(imageFile);
+                    if (imageUrl) {
+                        data.imageUrl = imageUrl;
+                        data.imageUploadedAt = new Date().toISOString();
+                    }
+                }
+
+                data.createdAt = serverTimestamp();
+                data.updatedAt = serverTimestamp();
+
+                await addDoc(collection(db, collectionName), data);
+                alert('✅ Document added successfully!');
+                document.getElementById('addForm').reset();
+                loadCollection(collectionName);
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Document';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // 7. PREVIEW IMAGE
+        // -------------------------------------------------------------
+        document.getElementById('formImage').addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    preview.innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // 8. INIT - LOAD DEFAULT COLLECTION
+        // -------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCollection('deals');
+
+            // Quick nav buttons
+            document.querySelectorAll('.quick-nav-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const collection = this.dataset.collection;
+                    loadCollection(collection);
+                    document.getElementById('formCollection').value = collection;
+                });
+            });
+        });
+
+        // Close modal on outside click
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('docModal');
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        body {
+            background: #f0f6ec;
+            min-height: 100vh;
+            padding: 16px 12px 90px 12px;
+        }
+
+        .app-wrapper {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        .admin-header {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 18px 14px 18px;
+            box-shadow: 0 6px 20px rgba(20, 50, 20, 0.06);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .admin-header .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-header .logo-area img {
+            height: 40px;
+            width: auto;
+            border-radius: 30px;
+            background: #eaf3e4;
+            padding: 4px 10px;
+        }
+
+        .admin-header .logo-area h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a3f1a;
+            line-height: 1.2;
+        }
+
+        .admin-header .logo-area small {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 400;
+            color: #4a754a;
+        }
+
+        .admin-header .user-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: #3b613b;
+        }
+
+        .admin-header .user-area .email {
+            background: #eaf3e4;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: #d9534f;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 14px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: #c9302c;
+            transform: scale(1.02);
+        }
+
+        /* STATS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 10px;
+            text-align: center;
+            border: 1px solid #e3efe0;
+            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.03);
+        }
+
+        .stat-card i {
+            font-size: 1.2rem;
+            color: #3a7a3a;
+        }
+
+        .stat-card .number {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a3f1a;
+            margin-top: 2px;
+        }
+
+        .stat-card .label {
+            font-size: 0.6rem;
+            color: #6b8a6b;
+            font-weight: 500;
+        }
+
+        /* NAV TABS */
+        .nav-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+            background: white;
+            border-radius: 20px;
+            padding: 8px 10px;
+            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
+            border: 1px solid #e3efe0;
+        }
+
+        .quick-nav-btn {
+            flex: 1;
+            min-width: 60px;
+            padding: 8px 6px;
+            border: none;
+            border-radius: 14px;
+            background: transparent;
+            color: #3b613b;
+            font-weight: 600;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-align: center;
+        }
+
+        .quick-nav-btn i {
+            font-size: 1rem;
+            color: #5a7a5a;
+        }
+
+        .quick-nav-btn:hover {
+            background: #eaf3e4;
+            transform: translateY(-2px);
+        }
+
+        .quick-nav-btn.active {
+            background: #1f4f1f;
+            color: white;
+        }
+
+        .quick-nav-btn.active i {
+            color: white;
+        }
+
+        /* DATA DISPLAY */
+        .data-display {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
+            border: 1px solid #e3efe0;
+            min-height: 200px;
+        }
+
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eaf3e4;
+        }
+
+        .collection-header h3 {
+            font-size: 1rem;
+            color: #1a3f1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .collection-header .count {
+            background: #eaf3e4;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #3b613b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        table th {
+            text-align: left;
+            padding: 8px 6px;
+            background: #f4f9f0;
+            color: #1a3f1a;
+            font-weight: 600;
+            border-bottom: 2px solid #dce8d6;
+        }
+
+        table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #eaf3e4;
+            vertical-align: top;
+        }
+
+        .doc-id {
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: #6b8a6b;
+            white-space: nowrap;
+        }
+
+        .data-preview {
+            font-family: monospace;
+            font-size: 0.65rem;
+            background: #f8fbf7;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin: 0;
+            max-height: 60px;
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            border: none;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+
+        .btn-sm:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-danger {
+            background: #d9534f;
+        }
+        .btn-danger:hover {
+            background: #c9302c;
+        }
+        .btn-primary {
+            background: #3a7a3a;
+        }
+        .btn-primary:hover {
+            background: #2d6a2d;
+        }
+
+        .loading,
+        .empty-state,
+        .error-state {
+            text-align: center;
+            padding: 30px 10px;
+            color: #6b8a6b;
+        }
+
+        .loading i,
+        .empty-state i,
+        .error-state i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .error-state {
+            color: #d9534f;
+        }
+
+        /* FORM */
+        .add-form {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            border: 1px solid #e3efe0;
+            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
+        }
+
+        .add-form h3 {
+            font-size: 0.95rem;
+            color: #1a3f1a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #3b613b;
+            margin-bottom: 3px;
+        }
+
+        .form-group select,
+        .form-group textarea,
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1.5px solid #dce8d6;
+            background: #fafcfa;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3a7a3a;
+            box-shadow: 0 0 0 3px rgba(58, 122, 58, 0.12);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .form-group input[type="file"] {
+            padding: 6px;
+        }
+
+        .image-preview {
+            margin-top: 8px;
+            display: none;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 12px;
+            border: 1px solid #dce8d6;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 60px;
+            background: #1f4f1f;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(30, 80, 30, 0.15);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: #2d6a2d;
+            transform: scale(1.01);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            position: relative;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b8a6b;
+            background: none;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #1a3f1a;
+            transform: rotate(90deg);
+        }
+
+        .modal-box h2 {
+            color: #1a3f1a;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            padding-right: 30px;
+        }
+
+        .modal-box pre {
+            background: #f4f9f0;
+            padding: 14px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 18px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .nav-inner {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            border-radius: 60px;
+            padding: 8px 10px;
+            display: flex;
+            gap: 4px;
+            box-shadow: 0 8px 30px rgba(0, 20, 0, 0.12);
+            border: 1px solid #dce8d6;
+            pointer-events: auto;
+            max-width: 400px;
+            width: 100%;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #3d5a3d;
+            font-size: 0.55rem;
+            font-weight: 500;
+            padding: 4px 6px;
+            border-radius: 40px;
+            transition: 0.2s;
+            flex: 1;
+            text-align: center;
+            gap: 1px;
+        }
+
+        .nav-item i {
+            font-size: 1.1rem;
+            color: #3d6a3d;
+        }
+
+        .nav-item.active {
+            background: #dcecd4;
+            color: #1b451b;
+        }
+
+        .nav-item.active i {
+            color: #1f4f1f;
+        }
+
+        @media (max-width: 460px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .admin-header .logo-area h1 {
+                font-size: 0.9rem;
+            }
+            .quick-nav-btn {
+                font-size: 0.55rem;
+                min-width: 50px;
+                padding: 6px 4px;
+            }
+            .quick-nav-btn i {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div class="logo-area">
+                <img src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png" alt="Logo">
+                <h1>Admin Panel <small>Aurora Weed</small></h1>
+            </div>
+            <div class="user-area">
+                <span class="email" id="adminEmail">admin@aurora.com</span>
+                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </header>
+
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <i class="fas fa-box"></i>
+                <span class="number" id="totalDeals">0</span>
+                <span class="label">Deals</span>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <span class="number" id="totalUsers">0</span>
+                <span class="label">Users</span>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-dollar-sign"></i>
+                <span class="number" id="totalInvested">$0</span>
+                <span class="label">Invested</span>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-video"></i>
+                <span class="number" id="totalVideos">0</span>
+                <span class="label">Videos</span>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <div class="nav-tabs">
+            <button class="quick-nav-btn active" data-collection="deals">
+                <i class="fas fa-handshake"></i> Deals
+            </button>
+            <button class="quick-nav-btn" data-collection="selling">
+                <i class="fas fa-tag"></i> Selling
+            </button>
+            <button class="quick-nav-btn" data-collection="users">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button class="quick-nav-btn" data-collection="youtube">
+                <i class="fab fa-youtube"></i> YouTube
+            </button>
+            <button class="quick-nav-btn" data-collection="products">
+                <i class="fas fa-cannabis"></i> Products
+            </button>
+            <button class="quick-nav-btn" data-collection="investments">
+                <i class="fas fa-chart-line"></i> Invest
+            </button>
+            <button class="quick-nav-btn" data-collection="updates">
+                <i class="fas fa-bell"></i> Updates
+            </button>
+        </div>
+
+        <!-- DATA DISPLAY -->
+        <div class="data-display" id="dataDisplay">
+            <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        </div>
+
+        <!-- ADD FORM -->
+        <div class="add-form">
+            <h3><i class="fas fa-plus-circle"></i> Add New Document</h3>
+            <form id="addForm">
+                <div class="form-group">
+                    <label>Collection</label>
+                    <select id="formCollection" required>
+                        <option value="deals">Deals</option>
+                        <option value="selling">Selling</option>
+                        <option value="users">Users</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="products">Products</option>
+                        <option value="investments">Investments</option>
+                        <option value="updates">Updates</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data (JSON format)</label>
+                    <textarea id="formData" placeholder='{"field1": "value1", "field2": "value2"}' required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Upload Image (optional - uploads to Cloudinary)</label>
+                    <input type="file" id="formImage" accept="image/*" />
+                    <div class="image-preview" id="imagePreview"></div>
+                </div>
+                <button type="submit" class="btn-submit"><i class="fas fa-plus"></i> Add Document</button>
+            </form>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <div class="bottom-nav">
+            <div class="nav-inner">
+                <a href="index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+                <a href="deals.html" class="nav-item"><i class="fas fa-handshake"></i> Deals</a>
+                <a href="selling.html" class="nav-item"><i class="fas fa-tag"></i> Selling</a>
+                <a href="users.html" class="nav-item active"><i class="fas fa-users"></i> Users</a>
+                <a href="youtube.html" class="nav-item"><i class="fab fa-youtube"></i> YouTube</a>
+                <a href="assets.html" class="nav-item"><i class="fas fa-coins"></i> Assets</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DOCUMENT MODAL -->
+    <div class="modal-overlay" id="docModal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h2 id="modalTitle">Document</h2>
+            <pre id="modalContent"></pre>
+        </div>
+    </div>
+
+</body>
+</html>
