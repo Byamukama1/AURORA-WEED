@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Login · Aurora Weed Admin</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // -------------------------------------------------------------
+        // 1. FIREBASE INIT (NEW CREDENTIALS)
+        // -------------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // Your new Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiC0kYQY5EUzjrqHuU4GNdVEjsIp61tEI",
+            authDomain: "aurora-weed.firebaseapp.com",
+            projectId: "aurora-weed",
+            storageBucket: "aurora-weed.firebasestorage.app",
+            messagingSenderId: "306985359795",
+            appId: "1:306985359795:web:0c6178fe5579797bd213c6",
+            measurementId: "G-R3V55M351H"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+
+        console.log("✅ Firebase initialized with new credentials");
+
+        // -------------------------------------------------------------
+        // 2. DOM ELEMENTS
+        // -------------------------------------------------------------
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const forgotLink = document.getElementById('forgotLink');
+        const forgotModal = document.getElementById('forgotModal');
+        const closeModal = document.getElementById('closeModal');
+        const resetForm = document.getElementById('resetForm');
+        const resetEmail = document.getElementById('resetEmail');
+        const resetMessage = document.getElementById('resetMessage');
+
+        // -------------------------------------------------------------
+        // 3. TOGGLE PASSWORD VISIBILITY
+        // -------------------------------------------------------------
+        window.togglePassword = function(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        };
+
+        // -------------------------------------------------------------
+        // 4. LOGIN HANDLER
+        // -------------------------------------------------------------
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            loginError.style.display = 'none';
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Redirect to admin dashboard
+                window.location.href = 'admin.html';
+            } catch (error) {
+                let errorMsg = error.message;
+                if (errorMsg.includes('user-not-found')) {
+                    errorMsg = 'No account found with this email. Please contact admin.';
+                } else if (errorMsg.includes('wrong-password')) {
+                    errorMsg = 'Incorrect password. Please try again.';
+                } else if (errorMsg.includes('too-many-requests')) {
+                    errorMsg = 'Too many failed attempts. Please try again later.';
+                }
+                loginError.textContent = '❌ ' + errorMsg;
+                loginError.style.display = 'block';
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // 5. FORGOT PASSWORD - Open Modal
+        // -------------------------------------------------------------
+        forgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotModal.style.display = 'flex';
+            resetEmail.value = '';
+            resetMessage.textContent = '';
+            resetMessage.style.display = 'none';
+            resetMessage.style.background = 'transparent';
+            resetMessage.style.border = 'none';
+            resetMessage.style.color = '#856404';
+        });
+
+        // -------------------------------------------------------------
+        // 6. CLOSE MODAL
+        // -------------------------------------------------------------
+        closeModal.addEventListener('click', () => {
+            forgotModal.style.display = 'none';
+        });
+
+        forgotModal.addEventListener('click', (e) => {
+            if (e.target === forgotModal) {
+                forgotModal.style.display = 'none';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // 7. PASSWORD RESET HANDLER
+        // -------------------------------------------------------------
+        resetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = resetEmail.value.trim();
+
+            if (!email) {
+                resetMessage.textContent = 'Please enter your email address.';
+                resetMessage.style.display = 'block';
+                resetMessage.style.color = '#856404';
+                resetMessage.style.background = '#fff3cd';
+                resetMessage.style.padding = '12px';
+                resetMessage.style.borderRadius = '8px';
+                resetMessage.style.border = '1px solid #ffeeba';
+                return;
+            }
+
+            resetMessage.style.display = 'none';
+            const submitBtn = resetForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                await sendPasswordResetEmail(auth, email, {
+                    url: window.location.origin + '/login.html',
+                    handleCodeInApp: false
+                });
+
+                resetMessage.textContent = '✅ Password reset email sent! Check your inbox.';
+                resetMessage.style.display = 'block';
+                resetMessage.style.color = '#155724';
+                resetMessage.style.background = '#d4edda';
+                resetMessage.style.padding = '12px';
+                resetMessage.style.borderRadius = '8px';
+                resetMessage.style.border = '1px solid #c3e6cb';
+
+                console.log(`🔐 Password reset requested for: ${email}`);
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
+
+                // Auto-close after 5 seconds
+                setTimeout(() => {
+                    forgotModal.style.display = 'none';
+                }, 5000);
+
+            } catch (error) {
+                let errorMsg = error.message;
+                if (errorMsg.includes('user-not-found')) {
+                    errorMsg = 'No account found with this email.';
+                }
+                resetMessage.textContent = '❌ ' + errorMsg;
+                resetMessage.style.display = 'block';
+                resetMessage.style.color = '#721c24';
+                resetMessage.style.background = '#f8d7da';
+                resetMessage.style.padding = '12px';
+                resetMessage.style.borderRadius = '8px';
+                resetMessage.style.border = '1px solid #f5c6cb';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // 8. ENABLE LOGIN BUTTON IF FIELDS ARE FILLED
+        // -------------------------------------------------------------
+        function checkFields() {
+            if (emailInput.value.trim() && passwordInput.value.trim()) {
+                loginBtn.disabled = false;
+            } else {
+                loginBtn.disabled = true;
+            }
+        }
+        emailInput.addEventListener('input', checkFields);
+        passwordInput.addEventListener('input', checkFields);
+        checkFields();
+
+        // Pre-fill email from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailParam = urlParams.get('email');
+        if (emailParam) {
+            emailInput.value = emailParam;
+            checkFields();
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        body {
+            background: #f0f6ec;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 16px;
+        }
+
+        .container {
+            max-width: 440px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            padding: 36px 28px 40px 28px;
+            box-shadow: 0 12px 40px rgba(20, 50, 20, 0.08);
+            border: 1px solid #e2efe0;
+        }
+
+        /* Brand Header */
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eaf3e4;
+        }
+
+        .brand-header img {
+            height: 48px;
+            width: auto;
+            border-radius: 30px;
+            background: #eaf3e4;
+            padding: 4px 10px;
+        }
+
+        .brand-header h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a3f1a;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-header h1 small {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: #4a754a;
+            letter-spacing: 0.3px;
+        }
+
+        .welcome-text {
+            color: #2d5a2d;
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .welcome-text i {
+            color: #3a7a3a;
+        }
+
+        /* Form */
+        label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1d3a1d;
+            display: block;
+            margin-top: 16px;
+            margin-bottom: 4px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1.5px solid #dce8d6;
+            background: #fafcfa;
+            font-size: 0.95rem;
+            transition: 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3a7a3a;
+            box-shadow: 0 0 0 3px rgba(58, 122, 58, 0.12);
+        }
+
+        .password-box {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .password-box input {
+            padding-right: 48px;
+        }
+
+        .eye {
+            position: absolute;
+            right: 16px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #5a7a5a;
+            user-select: none;
+        }
+
+        .eye:hover {
+            color: #1d4a1d;
+        }
+
+        .error-msg {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            display: none;
+            border: 1px solid #f5c6cb;
+        }
+
+        .forgot-link {
+            display: block;
+            text-align: right;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #3a7a3a;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .forgot-link:hover {
+            color: #1d4a1d;
+            text-decoration: underline;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 60px;
+            background: #1f4f1f;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(30, 80, 30, 0.15);
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #2d6a2d;
+            transform: scale(1.01);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 20px 0 14px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dce8d6;
+        }
+
+        .divider span {
+            font-size: 0.75rem;
+            color: #6b8a6b;
+            font-weight: 500;
+        }
+
+        .home-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #4a754a;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .home-link:hover {
+            color: #1d4a1d;
+            text-decoration: underline;
+        }
+
+        .home-link i {
+            margin-right: 6px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 28px;
+            padding: 32px 28px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            position: relative;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b8a6b;
+            transition: 0.2s;
+            background: none;
+            border: none;
+        }
+
+        .modal-close:hover {
+            color: #1d3a1d;
+            transform: rotate(90deg);
+        }
+
+        .modal-box h2 {
+            color: #1a3f1a;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .modal-box p {
+            color: #4a754a;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-box .reset-message {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .btn-outline {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 60px;
+            background: #1f4f1f;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: #2d6a2d;
+        }
+
+        .btn-outline:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            background: #1f4f1f;
+            color: white;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-left: 6px;
+        }
+
+        @media (max-width: 460px) {
+            .container {
+                padding: 24px 16px 30px 16px;
+            }
+            .brand-header h1 {
+                font-size: 1.1rem;
+            }
+            .modal-box {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Brand Header -->
+        <div class="brand-header">
+            <img src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png" alt="Aurora Weed Logo" />
+            <h1>
+                Admin Login
+                <small>Aurora Weed P2P Network</small>
+            </h1>
+        </div>
+
+        <div class="welcome-text">
+            <i class="fas fa-shield-alt"></i> Secure access for administrators only.
+            <br />
+            <span style="font-size:0.8rem; color:#4a754a;">Enter your credentials to continue.</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm">
+            <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+            <input id="email" type="email" required placeholder="admin@aurora.com" autocomplete="email" />
+
+            <label for="password"><i class="fas fa-lock"></i> Password</label>
+            <div class="password-box">
+                <input id="password" type="password" required placeholder="Enter your password" autocomplete="current-password" />
+                <span class="eye" onclick="togglePassword('password')">👁️</span>
+            </div>
+
+            <a href="#" id="forgotLink" class="forgot-link">🔑 Forgot Password?</a>
+
+            <div id="loginError" class="error-msg"></div>
+
+            <button type="submit" id="loginBtn" class="btn-primary" disabled>
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+
+        <div class="divider">
+            <span>or</span>
+        </div>
+
+        <a href="index.html" class="home-link">
+            <i class="fas fa-home"></i> Return to Home Page
+        </a>
+
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" class="modal-overlay">
+        <div class="modal-box">
+            <button id="closeModal" class="modal-close">&times;</button>
+            <h2><i class="fas fa-key" style="color:#3a7a3a;"></i> Reset Password</h2>
+            <p>
+                Enter your email address below. We'll send you a password reset link.
+                <br /><br />
+                <strong>Note:</strong> Only authorized admin accounts can reset passwords.
+            </p>
+
+            <form id="resetForm">
+                <label for="resetEmail">Email Address</label>
+                <input id="resetEmail" type="email" required placeholder="admin@aurora.com" autocomplete="email" />
+
+                <div id="resetMessage" class="reset-message"></div>
+
+                <button type="submit" class="btn-outline">
+                    <i class="fas fa-paper-plane"></i> Send Reset Link
+                </button>
+            </form>
+
+            <button onclick="document.getElementById('forgotModal').style.display='none'" 
+                    style="width:100%; padding:10px; margin-top:10px; border:none; background:#eef6ea; border-radius:60px; font-weight:600; color:#1d4a1d; cursor:pointer;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+</body>
+</html>
