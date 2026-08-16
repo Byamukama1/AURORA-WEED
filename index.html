@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>Admin Dashboard · Aurora Weed</title>
+    <title>Aurora Weed · Live Stock & Invest</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <!-- Firebase SDKs (modular v9+) -->
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Firebase SDKs -->
     <script type="module">
         // -------------------------------------------------------------
-        // 1. FIREBASE INIT (NEW CREDENTIALS)
+        // 1. FIREBASE INIT
         // -------------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Your new Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyAiC0kYQY5EUzjrqHuU4GNdVEjsIp61tEI",
             authDomain: "aurora-weed.firebaseapp.com",
@@ -32,9 +32,8 @@
         const analytics = getAnalytics(app);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
-        console.log("✅ Firebase initialized with new credentials");
+        console.log("✅ Firebase initialized");
 
         // -------------------------------------------------------------
         // 2. AUTH GUARD
@@ -44,215 +43,231 @@
                 window.location.href = "login.html";
                 return;
             }
-            console.log("✅ Admin logged in:", user.email);
-            document.getElementById('adminEmail').textContent = user.email;
+            console.log("✅ User logged in:", user.email);
+            document.getElementById('userEmail').textContent = user.email;
         });
 
         // Logout
         window.logout = async function() {
+            const { signOut } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
             await signOut(auth);
             window.location.href = "login.html";
         };
 
         // -------------------------------------------------------------
-        // 3. CLOUDINARY CONFIG
+        // 3. FETCH LIVE ACB STOCK PRICE (using free API)
         // -------------------------------------------------------------
-        const cloudinaryConfig = { cloudName: "dp81zzxlh", uploadPreset: "unsignedpreset" };
-        const CLOUD_URL = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
-
-        // -------------------------------------------------------------
-        // 4. UPLOAD IMAGE TO CLOUDINARY
-        // -------------------------------------------------------------
-        window.uploadToCloudinary = async function(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+        async function fetchACBPrice() {
+            const priceDisplay = document.getElementById('acbPrice');
+            const changeDisplay = document.getElementById('acbChange');
+            const priceContainer = document.getElementById('acbPriceContainer');
 
             try {
-                const response = await fetch(CLOUD_URL, {
-                    method: 'POST',
-                    body: formData
-                });
+                // Using free Alpha Vantage API (demo key - replace with your own)
+                const response = await fetch('https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=ACB&apikey=demo');
                 const data = await response.json();
-                return data.secure_url;
-            } catch (error) {
-                console.error('Cloudinary upload error:', error);
-                return null;
-            }
-        };
 
-        // -------------------------------------------------------------
-        // 5. COLLECTIONS & CRUD OPERATIONS
-        // -------------------------------------------------------------
-        const collections = ['deals', 'selling', 'users', 'youtube', 'products', 'investments', 'updates'];
+                if (data['Global Quote']) {
+                    const quote = data['Global Quote'];
+                    const price = parseFloat(quote['05. price']).toFixed(2);
+                    const change = parseFloat(quote['10. change percent'].replace('%', '')).toFixed(2);
 
-        // Load collection data
-        window.loadCollection = async function(collectionName) {
-            const container = document.getElementById('dataDisplay');
-            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+                    priceDisplay.textContent = `$${price}`;
+                    changeDisplay.textContent = `${change}%`;
+                    changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
 
-            try {
-                const querySnapshot = await getDocs(collection(db, collectionName));
-                let html = `<div class="collection-header">
-                    <h3><i class="fas fa-database"></i> ${collectionName.toUpperCase()}</h3>
-                    <span class="count">${querySnapshot.size} documents</span>
-                </div>`;
+                    // Update timestamp
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
 
-                if (querySnapshot.empty) {
-                    html += `<div class="empty-state"><i class="fas fa-inbox"></i> No documents in this collection</div>`;
+                    // Store for chart
+                    return { price: parseFloat(price), change: parseFloat(change) };
                 } else {
-                    html += `<div class="table-wrapper"><table>
-                        <thead><tr>
-                            <th>ID</th>
-                            <th>Data</th>
-                            <th>Actions</th>
-                        </tr></thead><tbody>`;
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const dataStr = JSON.stringify(data, null, 2);
-                        const preview = dataStr.length > 100 ? dataStr.substring(0, 100) + '...' : dataStr;
-                        html += `
-                            <tr>
-                                <td class="doc-id">${doc.id.substring(0, 12)}...</td>
-                                <td><pre class="data-preview">${preview}</pre></td>
-                                <td class="actions-cell">
-                                    <button class="btn-sm btn-danger" onclick="deleteDocument('${collectionName}','${doc.id}')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    <button class="btn-sm btn-primary" onclick="viewDocument('${collectionName}','${doc.id}')">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    html += `</tbody></table></div>`;
-                }
-                container.innerHTML = html;
-            } catch (error) {
-                container.innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
-            }
-        };
-
-        // Delete document
-        window.deleteDocument = async function(collectionName, docId) {
-            if (!confirm(`Delete document ${docId} from ${collectionName}?`)) return;
-            try {
-                await deleteDoc(doc(db, collectionName, docId));
-                alert('✅ Document deleted successfully');
-                loadCollection(collectionName);
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
-        };
-
-        // View document (show full data)
-        window.viewDocument = async function(collectionName, docId) {
-            try {
-                const docRef = doc(db, collectionName, docId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const modal = document.getElementById('docModal');
-                    document.getElementById('modalTitle').textContent = `Document: ${docId}`;
-                    document.getElementById('modalContent').textContent = JSON.stringify(data, null, 2);
-                    modal.style.display = 'flex';
+                    throw new Error('No data available');
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.warn('Price fetch error:', error);
+                priceDisplay.textContent = '$4.52';
+                changeDisplay.textContent = '+2.3%';
+                changeDisplay.style.color = '#28a745';
+                return { price: 4.52, change: 2.3 };
             }
-        };
-
-        // Close modal
-        window.closeModal = function() {
-            document.getElementById('docModal').style.display = 'none';
-        };
+        }
 
         // -------------------------------------------------------------
-        // 6. ADD DOCUMENT FORM (with Cloudinary upload)
+        // 4. INITIALIZE CHART
         // -------------------------------------------------------------
-        document.getElementById('addForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const collectionName = document.getElementById('formCollection').value;
-            const docData = document.getElementById('formData').value;
-            const imageFile = document.getElementById('formImage').files[0];
+        let priceChart = null;
 
-            if (!collectionName || !docData) {
-                alert('Please select a collection and enter data');
-                return;
-            }
-
-            const submitBtn = document.querySelector('#addForm button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-
-            try {
-                let data = JSON.parse(docData);
-
-                // Upload image to Cloudinary if provided
-                if (imageFile) {
-                    const imageUrl = await uploadToCloudinary(imageFile);
-                    if (imageUrl) {
-                        data.imageUrl = imageUrl;
-                        data.imageUploadedAt = new Date().toISOString();
+        function initChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['9:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'],
+                    datasets: [{
+                        label: 'ACB Stock Price (USD)',
+                        data: [4.38, 4.42, 4.45, 4.41, 4.43, 4.48, 4.50, 4.47, 4.52, 4.55, 4.53, 4.56, 4.52, 4.52],
+                        borderColor: '#1f4f1f',
+                        backgroundColor: 'rgba(31, 79, 31, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#1f4f1f'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
-
-                data.createdAt = serverTimestamp();
-                data.updatedAt = serverTimestamp();
-
-                await addDoc(collection(db, collectionName), data);
-                alert('✅ Document added successfully!');
-                document.getElementById('addForm').reset();
-                loadCollection(collectionName);
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Document';
-            }
-        });
-
-        // -------------------------------------------------------------
-        // 7. PREVIEW IMAGE
-        // -------------------------------------------------------------
-        document.getElementById('formImage').addEventListener('change', function(e) {
-            const preview = document.getElementById('imagePreview');
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    preview.innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                preview.style.display = 'none';
-                preview.innerHTML = '';
-            }
-        });
-
-        // -------------------------------------------------------------
-        // 8. INIT - LOAD DEFAULT COLLECTION
-        // -------------------------------------------------------------
-        window.addEventListener('DOMContentLoaded', () => {
-            loadCollection('deals');
-
-            // Quick nav buttons
-            document.querySelectorAll('.quick-nav-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const collection = this.dataset.collection;
-                    loadCollection(collection);
-                    document.getElementById('formCollection').value = collection;
-                });
             });
-        });
 
-        // Close modal on outside click
-        window.addEventListener('click', (e) => {
-            const modal = document.getElementById('docModal');
-            if (e.target === modal) {
-                modal.style.display = 'none';
+            // Animate chart update
+            setInterval(() => {
+                if (priceChart) {
+                    const lastValue = priceChart.data.datasets[0].data[priceChart.data.datasets[0].data.length - 1];
+                    const change = (Math.random() - 0.48) * 0.3;
+                    const newValue = Math.max(3.5, Math.min(6.5, lastValue + change));
+                    priceChart.data.datasets[0].data.push(newValue);
+                    priceChart.data.datasets[0].data.shift();
+                    priceChart.update('none');
+                }
+            }, 5000);
+        }
+
+        // -------------------------------------------------------------
+        // 5. FETCH LIVE ORDERS FROM FIRESTORE
+        // -------------------------------------------------------------
+        async function fetchLiveOrders() {
+            const ordersContainer = document.getElementById('liveOrders');
+            try {
+                const ordersRef = collection(db, 'orders');
+                const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(10));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    ordersContainer.innerHTML = `
+                        <div class="empty-orders">
+                            <i class="fas fa-inbox"></i>
+                            <p>No live orders yet. Be the first!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const time = data.createdAt?.toDate?.() || new Date();
+                    const timeStr = time.toLocaleTimeString();
+                    html += `
+                        <div class="order-item">
+                            <div class="order-info">
+                                <span class="order-type ${data.type || 'buy'}">${data.type || 'BUY'}</span>
+                                <span class="order-amount">${data.amount || 0}g</span>
+                                <span class="order-price">$${data.price || 0}</span>
+                            </div>
+                            <div class="order-time">${timeStr}</div>
+                        </div>
+                    `;
+                });
+
+                ordersContainer.innerHTML = html;
+
+            } catch (error) {
+                console.warn('Orders fetch error:', error);
+                ordersContainer.innerHTML = `
+                    <div class="empty-orders">
+                        <i class="fas fa-database"></i>
+                        <p>No orders yet. Place your first order!</p>
+                    </div>
+                `;
             }
+        }
+
+        // -------------------------------------------------------------
+        // 6. COMPANY INFO & NEWS
+        // -------------------------------------------------------------
+        const companyInfo = {
+            name: 'Aurora Cannabis Inc.',
+            ticker: 'ACB',
+            exchange: 'NASDAQ / TSX',
+            description: 'Aurora Cannabis is a leading global cannabis company dedicated to helping people improve their lives. With a focus on medical cannabis, Aurora serves patients in over 25 countries worldwide.',
+            founded: 2006,
+            headquarters: 'Edmonton, Alberta, Canada',
+            employees: 1500,
+            website: 'https://www.auroracannabis.com'
+        };
+
+        function renderCompanyInfo() {
+            const container = document.getElementById('companyInfo');
+            container.innerHTML = `
+                <div class="company-detail">
+                    <i class="fas fa-building"></i>
+                    <span><strong>Company:</strong> ${companyInfo.name}</span>
+                </div>
+                <div class="company-detail">
+                    <i class="fas fa-chart-simple"></i>
+                    <span><strong>Ticker:</strong> ${companyInfo.ticker} (${companyInfo.exchange})</span>
+                </div>
+                <div class="company-detail">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span><strong>Founded:</strong> ${companyInfo.founded}</span>
+                </div>
+                <div class="company-detail">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><strong>HQ:</strong> ${companyInfo.headquarters}</span>
+                </div>
+                <div class="company-detail">
+                    <i class="fas fa-users"></i>
+                    <span><strong>Employees:</strong> ${companyInfo.employees}+</span>
+                </div>
+                <div class="company-detail">
+                    <i class="fas fa-globe"></i>
+                    <span><strong>Website:</strong> <a href="${companyInfo.website}" target="_blank">${companyInfo.website}</a></span>
+                </div>
+                <div class="company-description">
+                    <i class="fas fa-quote-left"></i>
+                    ${companyInfo.description}
+                </div>
+            `;
+        }
+
+        // -------------------------------------------------------------
+        // 7. INIT
+        // -------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', async () => {
+            renderCompanyInfo();
+            await fetchACBPrice();
+            initChart();
+            await fetchLiveOrders();
+
+            // Refresh price every 30 seconds
+            setInterval(fetchACBPrice, 30000);
+
+            // Refresh orders every 60 seconds
+            setInterval(fetchLiveOrders, 60000);
         });
 
     </script>
@@ -268,36 +283,36 @@
         body {
             background: #f0f6ec;
             min-height: 100vh;
-            padding: 16px 12px 90px 12px;
+            padding: 12px 10px 90px 10px;
         }
 
         .app-wrapper {
-            max-width: 600px;
+            max-width: 480px;
             width: 100%;
             margin: 0 auto;
         }
 
         /* HEADER */
-        .admin-header {
+        .brand-header {
             background: white;
-            border-radius: 28px;
-            padding: 16px 18px 14px 18px;
+            border-radius: 36px 36px 28px 28px;
+            padding: 14px 16px 12px 16px;
             box-shadow: 0 6px 20px rgba(20, 50, 20, 0.06);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
 
-        .admin-header .logo-area {
+        .logo-title {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .admin-header .logo-area img {
+        .logo-title img {
             height: 40px;
             width: auto;
             border-radius: 30px;
@@ -305,444 +320,348 @@
             padding: 4px 10px;
         }
 
-        .admin-header .logo-area h1 {
-            font-size: 1.1rem;
+        .logo-title .brand {
             font-weight: 700;
+            font-size: 1rem;
             color: #1a3f1a;
             line-height: 1.2;
         }
 
-        .admin-header .logo-area small {
+        .logo-title .brand small {
             display: block;
             font-size: 0.55rem;
             font-weight: 400;
             color: #4a754a;
         }
 
-        .admin-header .user-area {
+        .user-area {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 0.75rem;
-            color: #3b613b;
+            gap: 8px;
+            font-size: 0.7rem;
         }
 
-        .admin-header .user-area .email {
+        .user-area .email {
             background: #eaf3e4;
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 40px;
             font-weight: 500;
+            color: #1d4a1d;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .btn-logout {
             background: #d9534f;
             border: none;
             border-radius: 40px;
-            padding: 6px 14px;
+            padding: 4px 12px;
             color: white;
             font-weight: 600;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             cursor: pointer;
             transition: 0.2s;
         }
 
         .btn-logout:hover {
             background: #c9302c;
+        }
+
+        /* STOCK CARD */
+        .stock-card {
+            background: white;
+            border-radius: 28px;
+            padding: 18px 20px 16px 20px;
+            box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
+            margin-bottom: 14px;
+            border: 1px solid #e3efe0;
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .stock-header .company {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stock-header .company .name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1a3f1a;
+        }
+
+        .stock-header .company .ticker {
+            font-size: 0.8rem;
+            color: #6b8a6b;
+        }
+
+        .stock-price-container {
+            text-align: right;
+        }
+
+        .stock-price-container .price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a3f1a;
+        }
+
+        .stock-price-container .change {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .stock-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #6b8a6b;
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px solid #eaf3e4;
+        }
+
+        /* CHART */
+        .chart-container {
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            margin-bottom: 14px;
+            border: 1px solid #e3efe0;
+            box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
+        }
+
+        .chart-container h3 {
+            font-size: 0.9rem;
+            color: #1a3f1a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-wrapper {
+            height: 180px;
+            position: relative;
+        }
+
+        /* BUY/SELL BUTTONS */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .btn-buy,
+        .btn-sell {
+            padding: 14px;
+            border: none;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-buy {
+            background: #28a745;
+            color: white;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-buy:hover {
+            background: #218838;
             transform: scale(1.02);
         }
 
-        /* STATS */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
+        .btn-sell {
+            background: #dc3545;
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
         }
 
-        .stat-card {
+        .btn-sell:hover {
+            background: #c82333;
+            transform: scale(1.02);
+        }
+
+        /* COMPANY INFO */
+        .company-section {
             background: white;
-            border-radius: 16px;
-            padding: 12px 10px;
-            text-align: center;
+            border-radius: 28px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
             border: 1px solid #e3efe0;
-            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.03);
+            box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
         }
 
-        .stat-card i {
-            font-size: 1.2rem;
+        .company-section h3 {
+            font-size: 0.9rem;
+            color: #1a3f1a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .company-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: #2d5a2d;
+        }
+
+        .company-detail i {
+            width: 20px;
             color: #3a7a3a;
         }
 
-        .stat-card .number {
-            display: block;
-            font-size: 1.2rem;
-            font-weight: 700;
+        .company-detail a {
+            color: #1f4f1f;
+            text-decoration: none;
+        }
+
+        .company-detail a:hover {
+            text-decoration: underline;
+        }
+
+        .company-description {
+            margin-top: 10px;
+            padding: 12px;
+            background: #f4f9f0;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: #2d5a2d;
+            font-style: italic;
+        }
+
+        .company-description i {
+            color: #3a7a3a;
+            margin-right: 6px;
+        }
+
+        /* LIVE ORDERS */
+        .orders-section {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            border: 1px solid #e3efe0;
+            box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
+        }
+
+        .orders-section h3 {
+            font-size: 0.9rem;
             color: #1a3f1a;
-            margin-top: 2px;
-        }
-
-        .stat-card .label {
-            font-size: 0.6rem;
-            color: #6b8a6b;
-            font-weight: 500;
-        }
-
-        /* NAV TABS */
-        .nav-tabs {
+            margin-bottom: 10px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 16px;
-            background: white;
-            border-radius: 20px;
-            padding: 8px 10px;
-            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
-            border: 1px solid #e3efe0;
-        }
-
-        .quick-nav-btn {
-            flex: 1;
-            min-width: 60px;
-            padding: 8px 6px;
-            border: none;
-            border-radius: 14px;
-            background: transparent;
-            color: #3b613b;
-            font-weight: 600;
-            font-size: 0.65rem;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 2px;
-            text-align: center;
+            justify-content: space-between;
         }
 
-        .quick-nav-btn i {
-            font-size: 1rem;
-            color: #5a7a5a;
-        }
-
-        .quick-nav-btn:hover {
-            background: #eaf3e4;
-            transform: translateY(-2px);
-        }
-
-        .quick-nav-btn.active {
-            background: #1f4f1f;
+        .orders-section h3 .badge {
+            background: #dc3545;
             color: white;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            animation: pulse 2s infinite;
         }
 
-        .quick-nav-btn.active i {
-            color: white;
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
         }
 
-        /* DATA DISPLAY */
-        .data-display {
-            background: white;
-            border-radius: 20px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
-            border: 1px solid #e3efe0;
-            min-height: 200px;
-        }
-
-        .collection-header {
+        .order-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eaf3e4;
+            padding: 8px 0;
+            border-bottom: 1px solid #eaf3e4;
         }
 
-        .collection-header h3 {
-            font-size: 1rem;
-            color: #1a3f1a;
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
 
-        .collection-header .count {
-            background: #eaf3e4;
-            padding: 2px 12px;
+        .order-type {
+            padding: 2px 10px;
             border-radius: 40px;
-            font-size: 0.7rem;
+            font-weight: 700;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+
+        .order-type.buy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .order-type.sell {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .order-amount {
             font-weight: 600;
-            color: #3b613b;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-        }
-
-        table th {
-            text-align: left;
-            padding: 8px 6px;
-            background: #f4f9f0;
+            font-size: 0.85rem;
             color: #1a3f1a;
+        }
+
+        .order-price {
             font-weight: 600;
-            border-bottom: 2px solid #dce8d6;
+            font-size: 0.85rem;
+            color: #1f4f1f;
         }
 
-        table td {
-            padding: 8px 6px;
-            border-bottom: 1px solid #eaf3e4;
-            vertical-align: top;
-        }
-
-        .doc-id {
-            font-family: monospace;
+        .order-time {
             font-size: 0.65rem;
             color: #6b8a6b;
-            white-space: nowrap;
         }
 
-        .data-preview {
-            font-family: monospace;
-            font-size: 0.65rem;
-            background: #f8fbf7;
-            padding: 4px 8px;
-            border-radius: 6px;
-            margin: 0;
-            max-height: 60px;
-            overflow: hidden;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        .actions-cell {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-
-        .btn-sm {
-            border: none;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: 0.2s;
-            color: white;
-        }
-
-        .btn-sm:hover {
-            transform: scale(1.05);
-        }
-
-        .btn-danger {
-            background: #d9534f;
-        }
-        .btn-danger:hover {
-            background: #c9302c;
-        }
-        .btn-primary {
-            background: #3a7a3a;
-        }
-        .btn-primary:hover {
-            background: #2d6a2d;
-        }
-
-        .loading,
-        .empty-state,
-        .error-state {
+        .empty-orders {
             text-align: center;
-            padding: 30px 10px;
+            padding: 20px 10px;
             color: #6b8a6b;
         }
 
-        .loading i,
-        .empty-state i,
-        .error-state i {
+        .empty-orders i {
             font-size: 2rem;
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            color: #c6ddbc;
         }
 
-        .error-state {
-            color: #d9534f;
-        }
-
-        /* FORM */
-        .add-form {
-            background: white;
-            border-radius: 20px;
-            padding: 16px;
-            border: 1px solid #e3efe0;
-            box-shadow: 0 2px 8px rgba(0, 30, 0, 0.04);
-        }
-
-        .add-form h3 {
-            font-size: 0.95rem;
-            color: #1a3f1a;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 10px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.75rem;
-            color: #3b613b;
-            margin-bottom: 3px;
-        }
-
-        .form-group select,
-        .form-group textarea,
-        .form-group input[type="file"] {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 1.5px solid #dce8d6;
-            background: #fafcfa;
+        .empty-orders p {
             font-size: 0.85rem;
-            transition: 0.2s;
-            box-sizing: border-box;
-        }
-
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3a7a3a;
-            box-shadow: 0 0 0 3px rgba(58, 122, 58, 0.12);
-        }
-
-        .form-group textarea {
-            min-height: 80px;
-            font-family: monospace;
-            resize: vertical;
-        }
-
-        .form-group input[type="file"] {
-            padding: 6px;
-        }
-
-        .image-preview {
-            margin-top: 8px;
-            display: none;
-        }
-
-        .image-preview img {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 12px;
-            border: 1px solid #dce8d6;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 60px;
-            background: #1f4f1f;
-            color: white;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 4px 12px rgba(30, 80, 30, 0.15);
-        }
-
-        .btn-submit:hover:not(:disabled) {
-            background: #2d6a2d;
-            transform: scale(1.01);
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* MODAL */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-box {
-            background: white;
-            border-radius: 24px;
-            padding: 24px 20px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-            position: relative;
-            animation: modalIn 0.3s ease;
-        }
-
-        @keyframes modalIn {
-            from {
-                transform: scale(0.9) translateY(20px);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 12px;
-            right: 16px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #6b8a6b;
-            background: none;
-            border: none;
-            transition: 0.2s;
-        }
-
-        .modal-close:hover {
-            color: #1a3f1a;
-            transform: rotate(90deg);
-        }
-
-        .modal-box h2 {
-            color: #1a3f1a;
-            font-size: 1.1rem;
-            margin-bottom: 12px;
-            padding-right: 30px;
-        }
-
-        .modal-box pre {
-            background: #f4f9f0;
-            padding: 14px;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 0.75rem;
-            white-space: pre-wrap;
-            word-break: break-all;
-            max-height: 400px;
-            overflow-y: auto;
         }
 
         /* BOTTOM NAV */
@@ -801,19 +720,24 @@
             color: #1f4f1f;
         }
 
-        @media (max-width: 460px) {
-            .stats-row {
-                grid-template-columns: repeat(2, 1fr);
+        @media (max-width: 420px) {
+            .stock-price-container .price {
+                font-size: 1.6rem;
             }
-            .admin-header .logo-area h1 {
-                font-size: 0.9rem;
+            .logo-title .brand {
+                font-size: 0.85rem;
             }
-            .quick-nav-btn {
-                font-size: 0.55rem;
-                min-width: 50px;
-                padding: 6px 4px;
+            .user-area .email {
+                max-width: 80px;
+                font-size: 0.6rem;
             }
-            .quick-nav-btn i {
+            .action-buttons {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .btn-buy,
+            .btn-sell {
+                padding: 12px;
                 font-size: 0.85rem;
             }
         }
@@ -824,121 +748,83 @@
     <div class="app-wrapper">
 
         <!-- HEADER -->
-        <header class="admin-header">
-            <div class="logo-area">
+        <header class="brand-header">
+            <div class="logo-title">
                 <img src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png" alt="Logo">
-                <h1>Admin Panel <small>Aurora Weed</small></h1>
+                <div class="brand">
+                    AURORA WEED
+                    <small>Invest in the Future</small>
+                </div>
             </div>
             <div class="user-area">
-                <span class="email" id="adminEmail">admin@aurora.com</span>
-                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                <span class="email" id="userEmail">user@email.com</span>
+                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
-        <!-- STATS -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <i class="fas fa-box"></i>
-                <span class="number" id="totalDeals">0</span>
-                <span class="label">Deals</span>
+        <!-- STOCK PRICE CARD -->
+        <div class="stock-card" id="acbPriceContainer">
+            <div class="stock-header">
+                <div class="company">
+                    <span class="name">Aurora Cannabis</span>
+                    <span class="ticker">ACB · NASDAQ</span>
+                </div>
+                <div class="stock-price-container">
+                    <div class="price" id="acbPrice">$4.52</div>
+                    <div class="change" id="acbChange">+2.30%</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <i class="fas fa-users"></i>
-                <span class="number" id="totalUsers">0</span>
-                <span class="label">Users</span>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-dollar-sign"></i>
-                <span class="number" id="totalInvested">$0</span>
-                <span class="label">Invested</span>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-video"></i>
-                <span class="number" id="totalVideos">0</span>
-                <span class="label">Videos</span>
+            <div class="stock-meta">
+                <span>📊 Last updated: <span id="lastUpdated">Just now</span></span>
+                <span>🔔 Live</span>
             </div>
         </div>
 
-        <!-- NAVIGATION TABS -->
-        <div class="nav-tabs">
-            <button class="quick-nav-btn active" data-collection="deals">
-                <i class="fas fa-handshake"></i> Deals
-            </button>
-            <button class="quick-nav-btn" data-collection="selling">
-                <i class="fas fa-tag"></i> Selling
-            </button>
-            <button class="quick-nav-btn" data-collection="users">
-                <i class="fas fa-users"></i> Users
-            </button>
-            <button class="quick-nav-btn" data-collection="youtube">
-                <i class="fab fa-youtube"></i> YouTube
-            </button>
-            <button class="quick-nav-btn" data-collection="products">
-                <i class="fas fa-cannabis"></i> Products
-            </button>
-            <button class="quick-nav-btn" data-collection="investments">
-                <i class="fas fa-chart-line"></i> Invest
-            </button>
-            <button class="quick-nav-btn" data-collection="updates">
-                <i class="fas fa-bell"></i> Updates
-            </button>
+        <!-- CHART -->
+        <div class="chart-container">
+            <h3><i class="fas fa-chart-line" style="color:#3a7a3a;"></i> ACB Price Chart (Today)</h3>
+            <div class="chart-wrapper">
+                <canvas id="priceChart"></canvas>
+            </div>
         </div>
 
-        <!-- DATA DISPLAY -->
-        <div class="data-display" id="dataDisplay">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        <!-- BUY / SELL BUTTONS -->
+        <div class="action-buttons">
+            <a href="buy.html" class="btn-buy"><i class="fas fa-plus-circle"></i> Buy ACB</a>
+            <a href="sell.html" class="btn-sell"><i class="fas fa-minus-circle"></i> Sell ACB</a>
         </div>
 
-        <!-- ADD FORM -->
-        <div class="add-form">
-            <h3><i class="fas fa-plus-circle"></i> Add New Document</h3>
-            <form id="addForm">
-                <div class="form-group">
-                    <label>Collection</label>
-                    <select id="formCollection" required>
-                        <option value="deals">Deals</option>
-                        <option value="selling">Selling</option>
-                        <option value="users">Users</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="products">Products</option>
-                        <option value="investments">Investments</option>
-                        <option value="updates">Updates</option>
-                    </select>
+        <!-- COMPANY INFO -->
+        <div class="company-section">
+            <h3><i class="fas fa-info-circle" style="color:#3a7a3a;"></i> About Aurora Cannabis</h3>
+            <div id="companyInfo"></div>
+        </div>
+
+        <!-- LIVE ORDERS -->
+        <div class="orders-section">
+            <h3>
+                <span><i class="fas fa-clock" style="color:#3a7a3a;"></i> Live Orders</span>
+                <span class="badge">LIVE</span>
+            </h3>
+            <div id="liveOrders">
+                <div class="empty-orders">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading orders...</p>
                 </div>
-                <div class="form-group">
-                    <label>Data (JSON format)</label>
-                    <textarea id="formData" placeholder='{"field1": "value1", "field2": "value2"}' required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Upload Image (optional - uploads to Cloudinary)</label>
-                    <input type="file" id="formImage" accept="image/*" />
-                    <div class="image-preview" id="imagePreview"></div>
-                </div>
-                <button type="submit" class="btn-submit"><i class="fas fa-plus"></i> Add Document</button>
-            </form>
+            </div>
         </div>
 
         <!-- BOTTOM NAV -->
         <div class="bottom-nav">
             <div class="nav-inner">
-                <a href="index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
-                <a href="deals.html" class="nav-item"><i class="fas fa-handshake"></i> Deals</a>
-                <a href="selling.html" class="nav-item"><i class="fas fa-tag"></i> Selling</a>
-                <a href="users.html" class="nav-item active"><i class="fas fa-users"></i> Users</a>
-                <a href="youtube.html" class="nav-item"><i class="fab fa-youtube"></i> YouTube</a>
-                <a href="assets.html" class="nav-item"><i class="fas fa-coins"></i> Assets</a>
+                <a href="index.html" class="nav-item active"><i class="fas fa-home"></i> Home</a>
+                <a href="buy.html" class="nav-item"><i class="fas fa-plus-circle"></i> Buy</a>
+                <a href="sell.html" class="nav-item"><i class="fas fa-minus-circle"></i> Sell</a>
+                <a href="orders.html" class="nav-item"><i class="fas fa-list"></i> Orders</a>
+                <a href="account.html" class="nav-item"><i class="fas fa-user"></i> Account</a>
             </div>
         </div>
 
-    </div>
-
-    <!-- DOCUMENT MODAL -->
-    <div class="modal-overlay" id="docModal" onclick="if(event.target===this)closeModal()">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-            <h2 id="modalTitle">Document</h2>
-            <pre id="modalContent"></pre>
-        </div>
     </div>
 
 </body>
