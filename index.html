@@ -1,114 +1,2381 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>Aurora Weed · Live Stock & Invest</title>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+                   maximum-scale=1.0, user-scalable=yes">
+
+    <meta name="theme-color" content="#173d20">
+
+    <title>Aurora Weed · ACB Live Investment</title>
+
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- External CSS -->
-    <link rel="stylesheet" href="index.css" />
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+
+    <!-- Your existing stylesheet -->
+    <link rel="stylesheet" href="index.css">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background: #f5f8f4;
+            color: #162516;
+        }
+
+        .app-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            margin: auto;
+            padding-bottom: 90px;
+        }
+
+        /* ================= HEADER ================= */
+
+        .brand-header {
+            background: linear-gradient(
+                135deg,
+                #12351b,
+                #285d31
+            );
+
+            color: white;
+
+            padding: 18px 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 15px;
+
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+
+            box-shadow:
+                0 4px 18px rgba(0,0,0,.12);
+        }
+
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-title img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .brand {
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: .5px;
+        }
+
+        .brand small {
+            display: block;
+            font-size: .68rem;
+            font-weight: 400;
+            opacity: .75;
+            margin-top: 3px;
+        }
+
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .email {
+            font-size: .75rem;
+            opacity: .85;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .btn-logout {
+            border: 0;
+            background: rgba(255,255,255,.12);
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        /* ================= MAIN ================= */
+
+        main {
+            padding: 18px;
+        }
+
+        /* ================= PRICE CARD ================= */
+
+        .stock-card {
+            background: white;
+            border-radius: 20px;
+            padding: 22px;
+
+            box-shadow:
+                0 8px 30px rgba(20,60,30,.08);
+
+            margin-bottom: 16px;
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .company .name {
+            display: block;
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+
+        .ticker {
+            display: inline-block;
+            margin-top: 5px;
+
+            font-size: .72rem;
+            font-weight: 700;
+
+            padding: 5px 9px;
+
+            border-radius: 7px;
+
+            background: #edf5ec;
+            color: #2e6937;
+        }
+
+        .stock-price-container {
+            text-align: right;
+        }
+
+        .price {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .change {
+            font-size: .9rem;
+            font-weight: 800;
+            margin-top: 3px;
+        }
+
+        .positive {
+            color: #16813b;
+        }
+
+        .negative {
+            color: #d33a3a;
+        }
+
+        .stock-meta {
+            display: flex;
+            justify-content: space-between;
+
+            border-top: 1px solid #edf1ec;
+
+            margin-top: 18px;
+            padding-top: 13px;
+
+            color: #718071;
+            font-size: .75rem;
+        }
+
+        .live-indicator {
+            color: #16813b;
+            font-weight: 800;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            display: inline-block;
+
+            border-radius: 50%;
+            background: #18a449;
+
+            margin-right: 5px;
+
+            box-shadow:
+                0 0 0 4px rgba(24,164,73,.12);
+
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .35;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* ================= STATS ================= */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+
+            border-radius: 15px;
+
+            box-shadow:
+                0 5px 20px rgba(20,60,30,.06);
+        }
+
+        .stat-title {
+            color: #788478;
+            font-size: .7rem;
+            margin-bottom: 7px;
+        }
+
+        .stat-value {
+            font-size: .98rem;
+            font-weight: 800;
+        }
+
+        /* ================= CHART ================= */
+
+        .chart-container {
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 20px;
+
+            box-shadow:
+                0 8px 30px rgba(20,60,30,.08);
+
+            margin-bottom: 16px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .chart-title i {
+            color: #34783f;
+            margin-right: 6px;
+        }
+
+        .time-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .time-btn {
+            border: 1px solid #dce8da;
+
+            background: #f7faf6;
+
+            color: #4c634e;
+
+            padding: 6px 10px;
+
+            border-radius: 8px;
+
+            font-size: .7rem;
+
+            cursor: pointer;
+        }
+
+        .time-btn.active {
+            background: #2f6f39;
+            color: white;
+            border-color: #2f6f39;
+        }
+
+        .chart-wrapper {
+            height: 360px;
+            position: relative;
+        }
+
+        /* ================= ORDER BOOK ================= */
+
+        .order-section {
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 20px;
+
+            margin-bottom: 16px;
+
+            box-shadow:
+                0 8px 30px rgba(20,60,30,.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .live-badge {
+            background: #e7f7eb;
+            color: #16813b;
+
+            padding: 5px 9px;
+
+            border-radius: 20px;
+
+            font-size: .65rem;
+            font-weight: 900;
+        }
+
+        .order-book {
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 12px;
+        }
+
+        .book-column {
+            border: 1px solid #edf1ec;
+
+            border-radius: 12px;
+
+            overflow: hidden;
+        }
+
+        .book-title {
+            padding: 10px;
+
+            font-size: .72rem;
+            font-weight: 900;
+        }
+
+        .book-title.buy {
+            background: #eaf7ed;
+            color: #17783a;
+        }
+
+        .book-title.sell {
+            background: #fff0f0;
+            color: #bd3737;
+        }
+
+        .book-row {
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            padding: 9px 10px;
+
+            font-size: .76rem;
+
+            border-top: 1px solid #f0f2ef;
+        }
+
+        .bid-price {
+            color: #17783a;
+            font-weight: 800;
+        }
+
+        .ask-price {
+            color: #bd3737;
+            font-weight: 800;
+        }
+
+        .size {
+            text-align: right;
+            color: #526052;
+        }
+
+        .spread {
+            text-align: center;
+
+            padding: 12px;
+
+            font-size: .75rem;
+
+            color: #687468;
+
+            background: #f8faf7;
+
+            border-radius: 10px;
+
+            margin-top: 12px;
+        }
+
+        /* ================= TRADE FEED ================= */
+
+        .trade-table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            font-size: .76rem;
+        }
+
+        .trade-table th {
+            text-align: left;
+
+            color: #778277;
+
+            font-size: .68rem;
+
+            padding: 8px;
+        }
+
+        .trade-table td {
+            padding: 10px 8px;
+
+            border-top: 1px solid #edf0ec;
+        }
+
+        .trade-buy {
+            color: #16813b;
+            font-weight: 800;
+        }
+
+        .trade-sell {
+            color: #d33a3a;
+            font-weight: 800;
+        }
+
+        /* ================= ACTION BUTTONS ================= */
+
+        .action-buttons {
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+        }
+
+        .btn-action {
+            padding: 15px;
+
+            border-radius: 14px;
+
+            text-decoration: none;
+
+            text-align: center;
+
+            font-weight: 900;
+
+            font-size: .9rem;
+        }
+
+        .btn-buy {
+            background: #1e843f;
+            color: white;
+        }
+
+        .btn-sell {
+            background: #bd3636;
+            color: white;
+        }
+
+        .btn-action i {
+            margin-right: 6px;
+        }
+
+        /* ================= COMPANY ================= */
+
+        .company-section,
+        .video-section {
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 20px;
+
+            margin-bottom: 16px;
+
+            box-shadow:
+                0 8px 30px rgba(20,60,30,.08);
+        }
+
+        .company-section h3,
+        .video-section h3 {
+            margin-top: 0;
+
+            font-size: 1rem;
+        }
+
+        #companyInfo {
+            color: #617061;
+
+            line-height: 1.7;
+
+            font-size: .84rem;
+        }
+
+        /* ================= STATUS ================= */
+
+        .market-status {
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            font-size: .75rem;
+        }
+
+        .status-open {
+            color: #16813b;
+        }
+
+        .status-closed {
+            color: #8a6d20;
+        }
+
+        /* ================= LOADING ================= */
+
+        .loading {
+            color: #7b877b;
+
+            text-align: center;
+
+            padding: 25px;
+        }
+
+        .error-message {
+            color: #b72e2e;
+
+            background: #fff0f0;
+
+            border-radius: 10px;
+
+            padding: 12px;
+
+            font-size: .78rem;
+        }
+
+        /* ================= NAV ================= */
+
+        .bottom-nav {
+            position: fixed;
+
+            bottom: 0;
+            left: 0;
+            right: 0;
+
+            background: rgba(255,255,255,.96);
+
+            backdrop-filter: blur(15px);
+
+            border-top: 1px solid #e5ebe3;
+
+            z-index: 1000;
+        }
+
+        .nav-inner {
+            max-width: 700px;
+
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(5, 1fr);
+        }
+
+        .nav-item {
+            padding: 12px 5px;
+
+            text-align: center;
+
+            text-decoration: none;
+
+            color: #7a857a;
+
+            font-size: .65rem;
+        }
+
+        .nav-item i {
+            display: block;
+
+            font-size: 1rem;
+
+            margin-bottom: 4px;
+        }
+
+        .nav-item.active {
+            color: #2f7039;
+
+            font-weight: 800;
+        }
+
+        /* ================= RESPONSIVE ================= */
+
+        @media (max-width: 700px) {
+
+            main {
+                padding: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .stock-header {
+                align-items: center;
+            }
+
+            .price {
+                font-size: 1.75rem;
+            }
+
+            .chart-wrapper {
+                height: 300px;
+            }
+
+            .email {
+                display: none;
+            }
+        }
+
+        @media (max-width: 420px) {
+
+            .order-book {
+                grid-template-columns: 1fr;
+            }
+
+            .time-buttons {
+                overflow-x: auto;
+            }
+
+            .chart-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+    </style>
 </head>
+
 <body>
 
-    <div class="app-wrapper">
+<div class="app-wrapper">
 
-        <!-- HEADER -->
-        <header class="brand-header">
-            <div class="logo-title">
-                <img src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png" alt="Logo" />
-                <div class="brand">
-                    AURORA WEED
-                    <small>Invest in the Future</small>
-                </div>
-            </div>
-            <div class="user-area">
-                <span class="email" id="userEmail">user@email.com</span>
-                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </header>
+    <!-- ================= HEADER ================= -->
 
-        <!-- STOCK PRICE CARD -->
-        <div class="stock-card" id="acbPriceContainer">
+    <header class="brand-header">
+
+        <div class="logo-title">
+
+            <img
+                src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png"
+                alt="Aurora Weed"
+            >
+
+            <div class="brand">
+                AURORA WEED
+
+                <small>
+                    ACB Investment Dashboard
+                </small>
+            </div>
+
+        </div>
+
+        <div class="user-area">
+
+            <span
+                class="email"
+                id="userEmail">
+                user@email.com
+            </span>
+
+            <button
+                class="btn-logout"
+                onclick="logout()"
+                title="Logout">
+
+                <i class="fas fa-sign-out-alt"></i>
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <main>
+
+        <!-- ================= PRICE ================= -->
+
+        <section class="stock-card">
+
             <div class="stock-header">
+
                 <div class="company">
-                    <span class="name">Aurora Cannabis</span>
-                    <span class="ticker">ACB · NASDAQ</span>
+
+                    <span class="name">
+                        Aurora Cannabis
+                    </span>
+
+                    <span class="ticker">
+                        ACB · NASDAQ
+                    </span>
+
+                    <div
+                        class="market-status"
+                        style="margin-top:10px">
+
+                        <span
+                            id="marketDot"
+                            class="live-dot">
+                        </span>
+
+                        <span id="marketStatus">
+                            Connecting...
+                        </span>
+
+                    </div>
+
                 </div>
+
                 <div class="stock-price-container">
-                    <div class="price" id="acbPrice">$4.52</div>
-                    <div class="change" id="acbChange">+2.30%</div>
+
+                    <div
+                        class="price"
+                        id="acbPrice">
+                        $--
+                    </div>
+
+                    <div
+                        class="change"
+                        id="acbChange">
+                        --
+                    </div>
+
                 </div>
+
             </div>
+
             <div class="stock-meta">
-                <span>📊 Last updated: <span id="lastUpdated">Just now</span></span>
-                <span>🔔 Live</span>
+
+                <span>
+
+                    <i class="fas fa-clock"></i>
+
+                    Last update:
+
+                    <span id="lastUpdated">
+                        Connecting...
+                    </span>
+
+                </span>
+
+                <span class="live-indicator">
+
+                    <span class="live-dot"></span>
+
+                    LIVE
+
+                </span>
+
             </div>
-        </div>
 
-        <!-- CHART -->
-        <div class="chart-container">
-            <h3><i class="fas fa-chart-line" style="color:#3a7a3a;"></i> ACB Price Chart (Today)</h3>
-            <div class="chart-wrapper">
-                <canvas id="priceChart"></canvas>
-            </div>
-        </div>
+        </section>
 
-        <!-- BUY / SELL BUTTONS -->
-        <div class="action-buttons">
-            <a href="buy.html" class="btn-buy"><i class="fas fa-plus-circle"></i> Buy ACB</a>
-            <a href="sell.html" class="btn-sell"><i class="fas fa-minus-circle"></i> Sell ACB</a>
-        </div>
 
-        <!-- COMPANY INFO -->
-        <div class="company-section">
-            <h3><i class="fas fa-info-circle" style="color:#3a7a3a;"></i> About Aurora Cannabis</h3>
-            <div id="companyInfo"></div>
-        </div>
+        <!-- ================= QUICK STATS ================= -->
 
-        <!-- LIVE ORDERS -->
-        <div class="orders-section">
-            <h3>
-                <span><i class="fas fa-clock" style="color:#3a7a3a;"></i> Live Orders</span>
-                <span class="badge">LIVE</span>
-            </h3>
-            <div id="liveOrders">
-                <div class="empty-orders">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading orders...</p>
+        <section class="stats-grid">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    PREVIOUS CLOSE
                 </div>
-            </div>
-        </div>
 
-        <!-- VIDEO GALLERY: KNOW MORE ABOUT AURORA -->
-        <div class="video-section">
-            <h3><i class="fas fa-video" style="color:#3a7a3a;"></i> KNOW MORE ABOUT AURORA</h3>
-            <div class="video-grid" id="static-videos"></div>
-            <div style="margin-top: 20px; border-top: 1px solid #eaf3e4; padding-top: 16px;">
-                <h4 style="font-size: 0.9rem; color: #1b3b1b; margin-bottom: 10px;">
-                    <i class="fas fa-database" style="color:#3a7a3a;"></i> Latest Updates
+                <div
+                    class="stat-value"
+                    id="previousClose">
+                    $--
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    DAY HIGH
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="dayHigh">
+                    $--
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    DAY LOW
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="dayLow">
+                    $--
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    VOLUME
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="volume">
+                    --
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= CHART ================= -->
+
+        <section class="chart-container">
+
+            <div class="chart-header">
+
+                <div class="chart-title">
+
+                    <i class="fas fa-chart-line"></i>
+
+                    ACB Price Chart
+
+                </div>
+
+                <div class="time-buttons">
+
+                    <button
+                        class="time-btn active"
+                        data-period="1D">
+                        1D
+                    </button>
+
+                    <button
+                        class="time-btn"
+                        data-period="5D">
+                        5D
+                    </button>
+
+                    <button
+                        class="time-btn"
+                        data-period="1M">
+                        1M
+                    </button>
+
+                    <button
+                        class="time-btn"
+                        data-period="3M">
+                        3M
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="chart-wrapper">
+
+                <canvas id="priceChart"></canvas>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= BID / ASK ================= -->
+
+        <section class="order-section">
+
+            <div class="section-header">
+
+                <div class="section-title">
+
+                    <i class="fas fa-layer-group"></i>
+
+                    Live Market Quotes
+
+                </div>
+
+                <span class="live-badge">
+                    LIVE
+                </span>
+
+            </div>
+
+
+            <div class="order-book">
+
+                <!-- BUY -->
+
+                <div class="book-column">
+
+                    <div class="book-title buy">
+
+                        BUY / BID
+
+                    </div>
+
+                    <div class="book-row">
+
+                        <span class="bid-price"
+                              id="bidPrice">
+                            $--
+                        </span>
+
+                        <span class="size"
+                              id="bidSize">
+                            --
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SELL -->
+
+                <div class="book-column">
+
+                    <div class="book-title sell">
+
+                        SELL / ASK
+
+                    </div>
+
+                    <div class="book-row">
+
+                        <span class="ask-price"
+                              id="askPrice">
+                            $--
+                        </span>
+
+                        <span class="size"
+                              id="askSize">
+                            --
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="spread">
+
+                Spread:
+
+                <strong id="spread">
+                    $--
+                </strong>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= TRADES ================= -->
+
+        <section class="order-section">
+
+            <div class="section-header">
+
+                <div class="section-title">
+
+                    <i class="fas fa-bolt"></i>
+
+                    Recent Market Trades
+
+                </div>
+
+                <span class="live-badge">
+                    LIVE
+                </span>
+
+            </div>
+
+
+            <div style="overflow-x:auto">
+
+                <table class="trade-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>TIME</th>
+                            <th>TYPE</th>
+                            <th>PRICE</th>
+                            <th>SHARES</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tradeFeed">
+
+                        <tr>
+
+                            <td colspan="4"
+                                class="loading">
+
+                                Waiting for market data...
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= BUY / SELL ================= -->
+
+        <section class="action-buttons">
+
+            <a
+                href="buy.html"
+                class="btn-action btn-buy">
+
+                <i class="fas fa-plus-circle"></i>
+
+                Buy ACB
+
+            </a>
+
+
+            <a
+                href="sell.html"
+                class="btn-action btn-sell">
+
+                <i class="fas fa-minus-circle"></i>
+
+                Sell ACB
+
+            </a>
+
+        </section>
+
+
+        <!-- ================= COMPANY ================= -->
+
+        <section class="company-section">
+
+            <h3>
+
+                <i
+                    class="fas fa-building"
+                    style="color:#34783f">
+                </i>
+
+                About Aurora Cannabis
+
+            </h3>
+
+            <div id="companyInfo">
+
+                Aurora Cannabis is a Canadian cannabis company
+                whose shares trade under the ticker ACB.
+
+                <br><br>
+
+                This dashboard displays market information for
+                educational and investment-information purposes.
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= MARKET INFORMATION ================= -->
+
+        <section class="company-section">
+
+            <h3>
+
+                <i
+                    class="fas fa-chart-bar"
+                    style="color:#34783f">
+                </i>
+
+                Market Information
+
+            </h3>
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        BID
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="infoBid">
+                        $--
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        ASK
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="infoAsk">
+                        $--
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        BID SIZE
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="infoBidSize">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        ASK SIZE
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="infoAskSize">
+                        --
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= VIDEOS ================= -->
+
+        <section class="video-section">
+
+            <h3>
+
+                <i
+                    class="fas fa-video"
+                    style="color:#34783f">
+                </i>
+
+                KNOW MORE ABOUT AURORA
+
+            </h3>
+
+            <div
+                class="video-grid"
+                id="static-videos">
+            </div>
+
+
+            <div
+                style="
+                    margin-top:20px;
+                    border-top:1px solid #eaf3e4;
+                    padding-top:16px;
+                ">
+
+                <h4
+                    style="
+                        font-size:.9rem;
+                        color:#1b3b1b;
+                        margin-bottom:10px;
+                    ">
+
+                    <i
+                        class="fas fa-database"
+                        style="color:#34783f">
+                    </i>
+
+                    Latest Updates
+
                 </h4>
-                <div class="video-grid" id="firestore-videos"></div>
-            </div>
-        </div>
 
-        <!-- BOTTOM NAV -->
-        <div class="bottom-nav">
-            <div class="nav-inner">
-                <a href="index.html" class="nav-item active"><i class="fas fa-home"></i> Home</a>
-                <a href="buy.html" class="nav-item"><i class="fas fa-plus-circle"></i> Buy</a>
-                <a href="sell.html" class="nav-item"><i class="fas fa-minus-circle"></i> Sell</a>
-                <a href="orders.html" class="nav-item"><i class="fas fa-list"></i> Orders</a>
-                <a href="account.html" class="nav-item"><i class="fas fa-user"></i> Account</a>
+                <div
+                    class="video-grid"
+                    id="firestore-videos">
+                </div>
+
             </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ================= BOTTOM NAV ================= -->
+
+    <div class="bottom-nav">
+
+        <div class="nav-inner">
+
+            <a
+                href="index.html"
+                class="nav-item active">
+
+                <i class="fas fa-home"></i>
+
+                Home
+
+            </a>
+
+
+            <a
+                href="buy.html"
+                class="nav-item">
+
+                <i class="fas fa-plus-circle"></i>
+
+                Buy
+
+            </a>
+
+
+            <a
+                href="sell.html"
+                class="nav-item">
+
+                <i class="fas fa-minus-circle"></i>
+
+                Sell
+
+            </a>
+
+
+            <a
+                href="orders.html"
+                class="nav-item">
+
+                <i class="fas fa-list"></i>
+
+                Orders
+
+            </a>
+
+
+            <a
+                href="account.html"
+                class="nav-item">
+
+                <i class="fas fa-user"></i>
+
+                Account
+
+            </a>
+
         </div>
 
     </div>
 
-    <!-- External JavaScript -->
-    <script type="module" src="index.js"></script>
+</div>
+
+
+<script>
+
+    /* =====================================================
+       AURORA CANNABIS ACB LIVE DASHBOARD
+       =====================================================
+
+       IMPORTANT:
+
+       The frontend expects your backend to expose:
+
+           GET /api/acb
+
+       Example response:
+
+       {
+          "symbol": "ACB",
+          "price": 4.52,
+          "change": 0.10,
+          "changePercent": 2.30,
+          "previousClose": 4.42,
+          "high": 4.60,
+          "low": 4.31,
+          "volume": 1245000,
+          "bid": 4.51,
+          "bidSize": 1200,
+          "ask": 4.53,
+          "askSize": 800,
+          "timestamp": 1784115291973,
+          "marketStatus": "open"
+       }
+
+       DO NOT put your EODHD API key here.
+    */
+
+
+    const API_URL = "/api/acb";
+
+    let priceChart = null;
+
+    let currentPeriod = "1D";
+
+    let lastPrice = null;
+
+
+    /* =====================================================
+       FORMATTERS
+       ===================================================== */
+
+    function money(value) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            Number.isNaN(Number(value))
+        ) {
+            return "$--";
+        }
+
+        return "$" + Number(value).toFixed(2);
+    }
+
+
+    function number(value) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            Number.isNaN(Number(value))
+        ) {
+            return "--";
+        }
+
+        return Number(value).toLocaleString();
+    }
+
+
+    function percent(value) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            Number.isNaN(Number(value))
+        ) {
+            return "--";
+        }
+
+        const n = Number(value);
+
+        return (
+            (n >= 0 ? "+" : "") +
+            n.toFixed(2) +
+            "%"
+        );
+    }
+
+
+    function timeFromTimestamp(timestamp) {
+
+        if (!timestamp) {
+            return "Just now";
+        }
+
+        const date =
+            new Date(
+                Number(timestamp)
+            );
+
+        return date.toLocaleTimeString(
+            [],
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }
+        );
+    }
+
+
+    /* =====================================================
+       UPDATE PRICE UI
+       ===================================================== */
+
+    function updatePrice(data) {
+
+        const price =
+            Number(data.price);
+
+        const change =
+            Number(data.change || 0);
+
+        const changePercent =
+            Number(data.changePercent || 0);
+
+
+        document.getElementById(
+            "acbPrice"
+        ).textContent = money(price);
+
+
+        const changeElement =
+            document.getElementById(
+                "acbChange"
+            );
+
+
+        changeElement.textContent =
+            `${change >= 0 ? "+" : ""}${change.toFixed(2)}
+             (${percent(changePercent)})`;
+
+
+        changeElement.classList.remove(
+            "positive",
+            "negative"
+        );
+
+
+        changeElement.classList.add(
+            change >= 0
+                ? "positive"
+                : "negative"
+        );
+
+
+        document.getElementById(
+            "previousClose"
+        ).textContent =
+            money(data.previousClose);
+
+
+        document.getElementById(
+            "dayHigh"
+        ).textContent =
+            money(data.high);
+
+
+        document.getElementById(
+            "dayLow"
+        ).textContent =
+            money(data.low);
+
+
+        document.getElementById(
+            "volume"
+        ).textContent =
+            number(data.volume);
+
+
+        document.getElementById(
+            "lastUpdated"
+        ).textContent =
+            timeFromTimestamp(
+                data.timestamp
+            );
+
+
+        /* BID */
+
+        document.getElementById(
+            "bidPrice"
+        ).textContent =
+            money(data.bid);
+
+
+        document.getElementById(
+            "bidSize"
+        ).textContent =
+            number(data.bidSize) +
+            " shares";
+
+
+        /* ASK */
+
+        document.getElementById(
+            "askPrice"
+        ).textContent =
+            money(data.ask);
+
+
+        document.getElementById(
+            "askSize"
+        ).textContent =
+            number(data.askSize) +
+            " shares";
+
+
+        /* SPREAD */
+
+        if (
+            data.bid !== undefined &&
+            data.ask !== undefined
+        ) {
+
+            const spread =
+                Number(data.ask) -
+                Number(data.bid);
+
+            document.getElementById(
+                "spread"
+            ).textContent =
+                money(spread);
+
+        }
+
+
+        document.getElementById(
+            "infoBid"
+        ).textContent =
+            money(data.bid);
+
+
+        document.getElementById(
+            "infoAsk"
+        ).textContent =
+            money(data.ask);
+
+
+        document.getElementById(
+            "infoBidSize"
+        ).textContent =
+            number(data.bidSize);
+
+
+        document.getElementById(
+            "infoAskSize"
+        ).textContent =
+            number(data.askSize);
+
+
+        /* MARKET STATUS */
+
+        const status =
+            data.marketStatus ||
+            "unknown";
+
+
+        document.getElementById(
+            "marketStatus"
+        ).textContent =
+            status === "open"
+                ? "Market Open"
+                : status === "extended-hours"
+                    ? "Extended Hours"
+                    : "Market Closed";
+
+
+        lastPrice = price;
+    }
+
+
+    /* =====================================================
+       CREATE / UPDATE CHART
+       ===================================================== */
+
+    function createChart(labels, prices) {
+
+        const canvas =
+            document.getElementById(
+                "priceChart"
+            );
+
+        const ctx =
+            canvas.getContext("2d");
+
+
+        if (priceChart) {
+
+            priceChart.destroy();
+
+        }
+
+
+        const gradient =
+            ctx.createLinearGradient(
+                0,
+                0,
+                0,
+                350
+            );
+
+        gradient.addColorStop(
+            0,
+            "rgba(48, 119, 61, .22)"
+        );
+
+        gradient.addColorStop(
+            1,
+            "rgba(48, 119, 61, .01)"
+        );
+
+
+        priceChart =
+            new Chart(
+                ctx,
+                {
+
+                    type: "line",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+
+                                label:
+                                    "ACB Price",
+
+                                data:
+                                    prices,
+
+                                borderColor:
+                                    "#32783f",
+
+                                backgroundColor:
+                                    gradient,
+
+                                borderWidth:
+                                    2.5,
+
+                                fill:
+                                    true,
+
+                                tension:
+                                    .25,
+
+                                pointRadius:
+                                    0,
+
+                                pointHoverRadius:
+                                    5
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio:
+                            false,
+
+                        interaction: {
+
+                            intersect:
+                                false,
+
+                            mode:
+                                "index"
+
+                        },
+
+                        plugins: {
+
+                            legend: {
+
+                                display:
+                                    false
+
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label:
+                                        function(context) {
+
+                                            return (
+                                                " ACB: " +
+                                                money(
+                                                    context.parsed.y
+                                                )
+                                            );
+
+                                        }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                grid: {
+
+                                    display:
+                                        false
+
+                                },
+
+                                ticks: {
+
+                                    maxTicksLimit:
+                                        7,
+
+                                    color:
+                                        "#7a857a",
+
+                                    font: {
+
+                                        size:
+                                            10
+
+                                    }
+
+                                }
+
+                            },
+
+                            y: {
+
+                                position:
+                                    "right",
+
+                                grid: {
+
+                                    color:
+                                        "rgba(0,0,0,.05)"
+
+                                },
+
+                                ticks: {
+
+                                    color:
+                                        "#7a857a",
+
+                                    callback:
+                                        function(value) {
+
+                                            return "$" +
+                                                Number(value)
+                                                    .toFixed(2);
+
+                                        }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+    }
+
+
+    /* =====================================================
+       LOAD CHART DATA
+       ===================================================== */
+
+    async function loadChart(period = "1D") {
+
+        try {
+
+            const response =
+                await fetch(
+                    `/api/acb/history?period=${period}`
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Chart API unavailable"
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            const labels =
+                data.map(
+                    item =>
+                        item.time ||
+                        item.datetime
+                );
+
+
+            const prices =
+                data.map(
+                    item =>
+                        Number(
+                            item.close
+                        )
+                );
+
+
+            createChart(
+                labels,
+                prices
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Chart error:",
+                error
+            );
+
+
+            /* Demo fallback */
+
+            createDemoChart();
+
+        }
+
+    }
+
+
+    /* =====================================================
+       DEMO CHART FALLBACK
+       ===================================================== */
+
+    function createDemoChart() {
+
+        const labels = [];
+
+        const prices = [];
+
+        let price = 4.50;
+
+
+        for (
+            let i = 0;
+            i < 60;
+            i++
+        ) {
+
+            labels.push(
+                `${Math.floor(i / 2)}:${i % 2 ? "30" : "00"}`
+            );
+
+
+            price +=
+                (Math.random() - .48)
+                * .035;
+
+
+            prices.push(
+                Number(
+                    price.toFixed(2)
+                )
+            );
+
+        }
+
+
+        createChart(
+            labels,
+            prices
+        );
+
+    }
+
+
+    /* =====================================================
+       LIVE QUOTE
+       ===================================================== */
+
+    async function loadLiveQuote() {
+
+        try {
+
+            const response =
+                await fetch(
+                    API_URL,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load ACB data"
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            updatePrice(data);
+
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            document.getElementById(
+                "marketStatus"
+            ).textContent =
+                "Connection unavailable";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       LIVE TRADE FEED
+       ===================================================== */
+
+    function addTrade(trade) {
+
+        const tbody =
+            document.getElementById(
+                "tradeFeed"
+            );
+
+
+        const row =
+            document.createElement(
+                "tr"
+            );
+
+
+        const side =
+            trade.side ||
+            "TRADE";
+
+
+        row.innerHTML = `
+
+            <td>
+                ${timeFromTimestamp(
+                    trade.timestamp
+                )}
+            </td>
+
+            <td class="${
+                side === "BUY"
+                    ? "trade-buy"
+                    : "trade-sell"
+            }">
+
+                ${side}
+
+            </td>
+
+            <td>
+                ${money(
+                    trade.price
+                )}
+            </td>
+
+            <td>
+                ${number(
+                    trade.size
+                )}
+            </td>
+
+        `;
+
+
+        tbody.prepend(
+            row
+        );
+
+
+        while (
+            tbody.children.length > 10
+        ) {
+
+            tbody.removeChild(
+                tbody.lastChild
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       WEBSOCKET
+       =====================================================
+
+       Your backend can relay EODHD WebSocket data here.
+
+       Example backend WebSocket:
+
+           wss://your-domain.com/ws/acb
+
+    */
+
+    let socket = null;
+
+
+    function connectLiveStream() {
+
+        const protocol =
+            location.protocol === "https:"
+                ? "wss:"
+                : "ws:";
+
+
+        const wsUrl =
+            `${protocol}//${location.host}/ws/acb`;
+
+
+        try {
+
+            socket =
+                new WebSocket(
+                    wsUrl
+                );
+
+
+            socket.onopen =
+                function() {
+
+                    console.log(
+                        "ACB live stream connected"
+                    );
+
+                    document.getElementById(
+                        "marketStatus"
+                    ).textContent =
+                        "Live market connection";
+
+                };
+
+
+            socket.onmessage =
+                function(event) {
+
+                    try {
+
+                        const data =
+                            JSON.parse(
+                                event.data
+                            );
+
+
+                        /*
+                         * Trade message
+                         */
+
+                        if (
+                            data.type ===
+                            "trade"
+                        ) {
+
+                            addTrade(
+                                data
+                            );
+
+                        }
+
+
+                        /*
+                         * Quote message
+                         */
+
+                        if (
+                            data.type ===
+                            "quote"
+                        ) {
+
+                            updatePrice(
+                                data
+                            );
+
+                        }
+
+                    } catch (error) {
+
+                        console.error(
+                            "WebSocket data error:",
+                            error
+                        );
+
+                    }
+
+                };
+
+
+            socket.onclose =
+                function() {
+
+                    console.log(
+                        "Live connection closed."
+                    );
+
+
+                    /*
+                     * Reconnect after
+                     * 5 seconds.
+                     */
+
+                    setTimeout(
+                        connectLiveStream,
+                        5000
+                    );
+
+                };
+
+
+            socket.onerror =
+                function(error) {
+
+                    console.error(
+                        "WebSocket error:",
+                        error
+                    );
+
+                };
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       PERIOD BUTTONS
+       ===================================================== */
+
+    document
+        .querySelectorAll(
+            ".time-btn"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    function() {
+
+                        document
+                            .querySelectorAll(
+                                ".time-btn"
+                            )
+                            .forEach(
+                                b =>
+                                    b.classList.remove(
+                                        "active"
+                                    )
+                            );
+
+
+                        this.classList.add(
+                            "active"
+                        );
+
+
+                        currentPeriod =
+                            this.dataset.period;
+
+
+                        loadChart(
+                            currentPeriod
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+    /* =====================================================
+       START
+       ===================================================== */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function() {
+
+            loadLiveQuote();
+
+            loadChart(
+                "1D"
+            );
+
+            connectLiveStream();
+
+        }
+    );
+
+
+    /* =====================================================
+       REFRESH FALLBACK
+
+       Useful if WebSocket isn't available.
+
+       Every 10 seconds.
+    */
+
+    setInterval(
+        loadLiveQuote,
+        10000
+    );
+
+
+    /* =====================================================
+       LOGOUT
+
+       Keep your existing Firebase logout function
+       if it already exists in index.js.
+    */
+
+    function logout() {
+
+        if (
+            typeof window.firebaseLogout ===
+            "function"
+        ) {
+
+            window.firebaseLogout();
+
+            return;
+
+        }
+
+
+        console.log(
+            "Connect this button to your Firebase logout function."
+        );
+
+    }
+
+</script>
+
+
+<!-- Your existing Firebase / application JavaScript -->
+<script
+    type="module"
+    src="index.js">
+</script>
 
 </body>
 </html>
