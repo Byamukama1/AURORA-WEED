@@ -4,26 +4,23 @@
     <meta charset="UTF-8">
 
     <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1.0,
-                   maximum-scale=1.0,
-                   user-scalable=yes">
+          content="width=device-width, initial-scale=1.0,
+                   maximum-scale=1.0, user-scalable=yes">
 
     <meta name="theme-color" content="#173d20">
 
-    <title>Aurora Weed · ACB Market Dashboard</title>
+    <title>Aurora Weed · ACB Market</title>
 
     <!-- Font Awesome -->
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
 
     <!-- Chart.js -->
     <script
         src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
     </script>
-
-    <link rel="stylesheet" href="index.css">
 
     <style>
 
@@ -41,106 +38,85 @@
                 Arial,
                 sans-serif;
 
-            background: #f5f8f4;
-            color: #162516;
+            background: #f4f7f3;
+            color: #172517;
         }
 
-        .app-wrapper {
-            width: 100%;
+        .app {
             max-width: 1100px;
             margin: auto;
-            padding-bottom: 100px;
+            padding-bottom: 90px;
         }
 
         /* ================= HEADER ================= */
 
-        .brand-header {
+        header {
             background:
                 linear-gradient(
                     135deg,
                     #12351b,
-                    #285d31
+                    #2d6b38
                 );
 
             color: white;
-
-            padding: 16px 20px;
+            padding: 17px 20px;
 
             display: flex;
-            align-items: center;
             justify-content: space-between;
-
-            gap: 15px;
+            align-items: center;
 
             position: sticky;
             top: 0;
-
             z-index: 1000;
 
             box-shadow:
-                0 4px 20px rgba(0,0,0,.14);
+                0 5px 20px rgba(0,0,0,.15);
         }
 
-        .logo-title {
+        .brand-area {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .logo-title img {
+        .brand-logo {
             width: 48px;
             height: 48px;
-
-            object-fit: cover;
-
             border-radius: 12px;
-
+            object-fit: cover;
             background: white;
         }
 
-        .brand {
+        .brand-name {
             font-size: 1.05rem;
             font-weight: 900;
             letter-spacing: .5px;
         }
 
-        .brand small {
+        .brand-subtitle {
             display: block;
             font-size: .68rem;
-            font-weight: 400;
             opacity: .75;
             margin-top: 3px;
         }
 
-        .user-area {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .email {
-            font-size: .75rem;
-            opacity: .85;
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .btn-logout {
-            border: 0;
-
-            background:
-                rgba(255,255,255,.12);
-
-            color: white;
-
-            width: 38px;
-            height: 38px;
-
+        .refresh-button {
+            width: 40px;
+            height: 40px;
+            border: none;
             border-radius: 10px;
 
+            background:
+                rgba(255,255,255,.13);
+
+            color: white;
             cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .refresh-button:hover {
+            background:
+                rgba(255,255,255,.22);
         }
 
         /* ================= MAIN ================= */
@@ -149,172 +125,142 @@
             padding: 18px;
         }
 
-        /* ================= PRICE CARD ================= */
+        /* ================= STATUS ================= */
 
-        .stock-card {
+        .connection {
             background: white;
+            border-radius: 14px;
+            padding: 11px 14px;
+            margin-bottom: 14px;
 
-            border-radius: 20px;
-
-            padding: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
             box-shadow:
-                0 8px 30px rgba(20,60,30,.08);
+                0 4px 18px rgba(20,60,30,.06);
+
+            font-size: .75rem;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #888;
+        }
+
+        .status-dot.online {
+            background: #20a34a;
+            box-shadow:
+                0 0 0 4px rgba(32,163,74,.12);
+        }
+
+        .status-dot.error {
+            background: #d63c3c;
+        }
+
+        #sourceText {
+            color: #748074;
+        }
+
+        /* ================= PRICE CARD ================= */
+
+        .price-card {
+            background: white;
+            border-radius: 22px;
+            padding: 24px;
+
+            box-shadow:
+                0 9px 35px rgba(20,60,30,.08);
 
             margin-bottom: 16px;
         }
 
-        .stock-header {
+        .price-top {
             display: flex;
-
             justify-content: space-between;
             align-items: flex-start;
-
-            gap: 15px;
+            gap: 20px;
         }
 
-        .company .name {
-            display: block;
-
-            font-size: 1.2rem;
+        .company-name {
+            font-size: 1.25rem;
             font-weight: 900;
         }
 
         .ticker {
             display: inline-block;
+            margin-top: 7px;
 
-            margin-top: 6px;
-
-            font-size: .72rem;
-            font-weight: 800;
+            background: #edf5ec;
+            color: #2c6b37;
 
             padding: 5px 9px;
 
             border-radius: 7px;
 
-            background: #edf5ec;
-            color: #2e6937;
+            font-size: .7rem;
+            font-weight: 800;
         }
 
-        .stock-price-container {
+        .market-name {
+            margin-top: 9px;
+            color: #788378;
+            font-size: .75rem;
+        }
+
+        .main-price {
             text-align: right;
         }
 
-        .price {
-            font-size: 2.45rem;
-
+        #price {
+            font-size: 2.6rem;
             font-weight: 950;
-
             letter-spacing: -1.5px;
         }
 
-        .change {
+        #change {
             font-size: .9rem;
-
             font-weight: 900;
-
             margin-top: 3px;
         }
 
         .positive {
-            color: #16813b;
+            color: #16833b;
         }
 
         .negative {
-            color: #d33a3a;
+            color: #d13b3b;
         }
 
-        .stock-meta {
-            display: flex;
+        .neutral {
+            color: #7b857b;
+        }
 
-            justify-content: space-between;
+        .price-footer {
+            border-top: 1px solid #edf0ec;
 
-            border-top:
-                1px solid #edf1ec;
-
-            margin-top: 18px;
-
+            margin-top: 20px;
             padding-top: 13px;
 
-            color: #718071;
-
-            font-size: .75rem;
-        }
-
-        .live-indicator {
-            color: #16813b;
-
-            font-weight: 900;
-        }
-
-        .live-dot {
-            width: 7px;
-            height: 7px;
-
-            display: inline-block;
-
-            border-radius: 50%;
-
-            background: #18a449;
-
-            margin-right: 5px;
-
-            box-shadow:
-                0 0 0 4px rgba(24,164,73,.12);
-
-            animation:
-                pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: .35;
-            }
-
-            100% {
-                opacity: 1;
-            }
-
-        }
-
-        /* ================= STATUS ================= */
-
-        .market-status {
             display: flex;
+            justify-content: space-between;
 
-            align-items: center;
-
-            gap: 7px;
-
-            margin-top: 10px;
-
-            font-size: .75rem;
-
-            font-weight: 700;
-        }
-
-        .status-open {
-            color: #16813b;
-        }
-
-        .status-closed {
-            color: #8a6d20;
-        }
-
-        .status-error {
-            color: #bd3737;
+            color: #768176;
+            font-size: .72rem;
         }
 
         /* ================= STATS ================= */
 
-        .stats-grid {
+        .stats {
             display: grid;
-
             grid-template-columns:
                 repeat(4, 1fr);
 
@@ -323,53 +269,43 @@
             margin-bottom: 16px;
         }
 
-        .stat-card {
+        .stat {
             background: white;
-
-            padding: 15px;
-
-            border-radius: 15px;
+            border-radius: 16px;
+            padding: 16px;
 
             box-shadow:
-                0 5px 20px rgba(20,60,30,.06);
+                0 5px 22px rgba(20,60,30,.06);
         }
 
-        .stat-title {
-            color: #788478;
-
-            font-size: .68rem;
-
-            margin-bottom: 7px;
-
+        .stat-label {
+            font-size: .67rem;
+            color: #7b857b;
             font-weight: 700;
+            margin-bottom: 7px;
         }
 
         .stat-value {
-            font-size: .98rem;
-
+            font-size: 1rem;
             font-weight: 900;
         }
 
         /* ================= CHART ================= */
 
-        .chart-container {
+        .card {
             background: white;
-
             border-radius: 20px;
-
             padding: 20px;
 
             box-shadow:
-                0 8px 30px rgba(20,60,30,.08);
+                0 7px 30px rgba(20,60,30,.07);
 
             margin-bottom: 16px;
         }
 
-        .chart-header {
+        .card-header {
             display: flex;
-
             justify-content: space-between;
-
             align-items: center;
 
             gap: 15px;
@@ -377,527 +313,378 @@
             margin-bottom: 15px;
         }
 
-        .chart-title {
+        .card-title {
             font-size: 1rem;
-
             font-weight: 900;
         }
 
-        .chart-title i {
+        .card-title i {
             color: #34783f;
-
             margin-right: 6px;
         }
 
-        .time-buttons {
+        .periods {
             display: flex;
-
             gap: 5px;
         }
 
-        .time-btn {
-            border:
-                1px solid #dce8da;
-
+        .period {
+            border: 1px solid #dce7da;
             background: #f7faf6;
-
-            color: #4c634e;
-
-            padding: 6px 10px;
+            color: #526452;
 
             border-radius: 8px;
 
-            font-size: .7rem;
+            padding: 6px 10px;
+
+            font-size: .68rem;
+            font-weight: 700;
 
             cursor: pointer;
         }
 
-        .time-btn.active {
-            background: #2f6f39;
-
+        .period.active {
+            background: #2f7039;
             color: white;
-
-            border-color: #2f6f39;
+            border-color: #2f7039;
         }
 
-        .chart-wrapper {
+        .chart-box {
             height: 360px;
-
             position: relative;
         }
 
-        /* ================= QUOTE ================= */
+        /* ================= MARKET DETAILS ================= */
 
-        .quote-section {
-            background: white;
+        .details-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, 1fr);
 
-            border-radius: 20px;
-
-            padding: 20px;
-
-            margin-bottom: 16px;
-
-            box-shadow:
-                0 8px 30px rgba(20,60,30,.08);
+            gap: 10px;
         }
 
-        .section-header {
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            margin-bottom: 15px;
+        .detail {
+            background: #f8faf7;
+            border-radius: 11px;
+            padding: 12px;
         }
 
-        .section-title {
-            font-size: 1rem;
-
-            font-weight: 900;
+        .detail-label {
+            color: #7b857b;
+            font-size: .67rem;
+            margin-bottom: 5px;
         }
 
-        .live-badge {
-            background: #e7f7eb;
-
-            color: #16813b;
-
-            padding: 5px 9px;
-
-            border-radius: 20px;
-
-            font-size: .65rem;
-
-            font-weight: 900;
+        .detail-value {
+            font-weight: 800;
+            font-size: .85rem;
         }
 
-        /* ================= ORDER BOOK ================= */
+        /* ================= BUY SELL ================= */
 
-        .order-book {
+        .actions {
             display: grid;
 
             grid-template-columns:
                 1fr 1fr;
 
             gap: 12px;
+
+            margin-bottom: 16px;
         }
 
-        .book-column {
-            border:
-                1px solid #edf1ec;
+        .action {
+            padding: 16px;
+            border-radius: 15px;
+
+            text-align: center;
+            text-decoration: none;
+
+            color: white;
+
+            font-size: .9rem;
+            font-weight: 900;
+        }
+
+        .buy {
+            background: #1d843f;
+        }
+
+        .sell {
+            background: #bd3939;
+        }
+
+        .action i {
+            margin-right: 6px;
+        }
+
+        /* ================= INFORMATION ================= */
+
+        .info-text {
+            color: #647064;
+            font-size: .83rem;
+            line-height: 1.7;
+        }
+
+        .warning {
+            margin-top: 15px;
+
+            background: #fff8e8;
+            border: 1px solid #f1dfae;
+
+            color: #715a20;
 
             border-radius: 12px;
 
-            overflow: hidden;
-        }
-
-        .book-title {
-            padding: 10px;
-
-            font-size: .72rem;
-
-            font-weight: 900;
-        }
-
-        .book-title.buy {
-            background: #eaf7ed;
-
-            color: #17783a;
-        }
-
-        .book-title.sell {
-            background: #fff0f0;
-
-            color: #bd3737;
-        }
-
-        .book-row {
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            padding: 14px 10px;
-
-            font-size: .8rem;
-
-            border-top:
-                1px solid #f0f2ef;
-        }
-
-        .bid-price {
-            color: #17783a;
-
-            font-weight: 900;
-        }
-
-        .ask-price {
-            color: #bd3737;
-
-            font-weight: 900;
-        }
-
-        .size {
-            text-align: right;
-
-            color: #526052;
-        }
-
-        .spread {
-            text-align: center;
-
             padding: 12px;
 
-            font-size: .75rem;
-
-            color: #687468;
-
-            background: #f8faf7;
-
-            border-radius: 10px;
-
-            margin-top: 12px;
-        }
-
-        /* ================= TRADES ================= */
-
-        .trade-table {
-            width: 100%;
-
-            border-collapse: collapse;
-
-            font-size: .76rem;
-        }
-
-        .trade-table th {
-            text-align: left;
-
-            color: #778277;
-
-            font-size: .68rem;
-
-            padding: 8px;
-        }
-
-        .trade-table td {
-            padding: 10px 8px;
-
-            border-top:
-                1px solid #edf0ec;
-        }
-
-        .trade-buy {
-            color: #16813b;
-
-            font-weight: 900;
-        }
-
-        .trade-sell {
-            color: #d33a3a;
-
-            font-weight: 900;
-        }
-
-        /* ================= ACTIONS ================= */
-
-        .action-buttons {
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 12px;
-
-            margin-bottom: 16px;
-        }
-
-        .btn-action {
-            padding: 15px;
-
-            border-radius: 14px;
-
-            text-decoration: none;
-
-            text-align: center;
-
-            font-weight: 900;
-
-            font-size: .9rem;
-        }
-
-        .btn-buy {
-            background: #1e843f;
-
-            color: white;
-        }
-
-        .btn-sell {
-            background: #bd3636;
-
-            color: white;
-        }
-
-        /* ================= COMPANY ================= */
-
-        .company-section {
-            background: white;
-
-            border-radius: 20px;
-
-            padding: 20px;
-
-            margin-bottom: 16px;
-
-            box-shadow:
-                0 8px 30px rgba(20,60,30,.08);
-        }
-
-        .company-section h3 {
-            margin-top: 0;
-
-            font-size: 1rem;
-        }
-
-        #companyInfo {
-            color: #617061;
-
-            line-height: 1.7;
-
-            font-size: .84rem;
+            font-size: .72rem;
+            line-height: 1.6;
         }
 
         /* ================= ERROR ================= */
 
-        .error-message {
-            color: #b72e2e;
+        .error-box {
+            display: none;
 
             background: #fff0f0;
+            color: #b52f2f;
 
-            border-radius: 10px;
+            border-radius: 12px;
 
             padding: 12px;
 
-            font-size: .78rem;
-        }
+            margin-bottom: 15px;
 
-        /* ================= LOADING ================= */
-
-        .loading {
-            text-align: center;
-
-            color: #7b877b;
-
-            padding: 25px;
+            font-size: .75rem;
         }
 
         /* ================= NAV ================= */
 
         .bottom-nav {
             position: fixed;
-
+            left: 0;
+            right: 0;
             bottom: 0;
 
-            left: 0;
-
-            right: 0;
-
             background:
-                rgba(255,255,255,.97);
+                rgba(255,255,255,.96);
 
             backdrop-filter: blur(15px);
 
             border-top:
-                1px solid #e5ebe3;
+                1px solid #e3e9e1;
 
             z-index: 1000;
         }
 
-        .nav-inner {
+        .nav {
             max-width: 700px;
-
             margin: auto;
 
             display: grid;
-
             grid-template-columns:
                 repeat(5, 1fr);
         }
 
-        .nav-item {
-            padding: 12px 5px;
+        .nav a {
+            padding: 11px 5px;
 
             text-align: center;
 
             text-decoration: none;
 
-            color: #7a857a;
+            color: #7c857c;
 
             font-size: .65rem;
         }
 
-        .nav-item i {
+        .nav i {
             display: block;
-
             font-size: 1rem;
-
             margin-bottom: 4px;
         }
 
-        .nav-item.active {
+        .nav a.active {
             color: #2f7039;
-
             font-weight: 900;
         }
 
-        /* ================= MOBILE ================= */
+        /* ================= LOADING ================= */
 
-        @media (max-width: 700px) {
+        .loading {
+            opacity: .65;
+        }
+
+        /* ================= RESPONSIVE ================= */
+
+        @media(max-width: 700px) {
 
             main {
                 padding: 12px;
             }
 
-            .stats-grid {
+            .stats {
                 grid-template-columns:
                     repeat(2, 1fr);
             }
 
-            .price {
-                font-size: 1.8rem;
+            #price {
+                font-size: 2rem;
             }
 
-            .chart-wrapper {
+            .chart-box {
                 height: 300px;
             }
-
-            .email {
-                display: none;
-            }
-
         }
 
-        @media (max-width: 420px) {
+        @media(max-width: 480px) {
 
-            .order-book {
-                grid-template-columns: 1fr;
+            .price-top {
+                flex-direction: column;
             }
 
-            .chart-header {
-                flex-direction: column;
+            .main-price {
+                text-align: left;
+            }
 
+            .price-footer {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .card-header {
+                flex-direction: column;
                 align-items: flex-start;
             }
 
-            .time-buttons {
+            .periods {
                 width: 100%;
-
                 overflow-x: auto;
             }
 
+            .details-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
     </style>
 </head>
 
-
 <body>
 
-<div class="app-wrapper">
+<div class="app">
 
-    <!-- ================= HEADER ================= -->
+    <!-- HEADER -->
 
-    <header class="brand-header">
+    <header>
 
-        <div class="logo-title">
+        <div class="brand-area">
 
             <img
+                class="brand-logo"
                 src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png"
-                alt="Aurora Weed">
+                alt="Aurora Weed"
+            >
 
-            <div class="brand">
+            <div>
 
-                AURORA WEED
+                <div class="brand-name">
+                    AURORA WEED
+                </div>
 
-                <small>
+                <span class="brand-subtitle">
                     ACB Market Dashboard
-                </small>
+                </span>
 
             </div>
 
         </div>
 
+        <button
+            class="refresh-button"
+            onclick="refreshAll()"
+            title="Refresh market data">
 
-        <div class="user-area">
+            <i class="fas fa-sync-alt"></i>
 
-            <span
-                class="email"
-                id="userEmail">
-                user@email.com
-            </span>
-
-            <button
-                class="btn-logout"
-                onclick="logout()">
-
-                <i class="fas fa-sign-out-alt"></i>
-
-            </button>
-
-        </div>
+        </button>
 
     </header>
 
 
     <main>
 
-        <!-- ================= PRICE ================= -->
+        <!-- CONNECTION -->
 
-        <section class="stock-card">
+        <div class="connection">
 
-            <div class="stock-header">
+            <div class="status-left">
 
-                <div class="company">
+                <span
+                    id="statusDot"
+                    class="status-dot">
+                </span>
 
-                    <span class="name">
+                <strong id="marketStatus">
+                    Loading market...
+                </strong>
+
+            </div>
+
+            <span id="sourceText">
+                Connecting...
+            </span>
+
+        </div>
+
+
+        <!-- ERROR -->
+
+        <div
+            id="errorBox"
+            class="error-box">
+        </div>
+
+
+        <!-- PRICE -->
+
+        <section class="price-card">
+
+            <div class="price-top">
+
+                <div>
+
+                    <div class="company-name">
                         Aurora Cannabis
-                    </span>
+                    </div>
 
                     <span class="ticker">
-                        ACB · NASDAQ
+                        ACB
                     </span>
 
-                    <div class="market-status">
-
-                        <span
-                            id="marketDot"
-                            class="live-dot">
-                        </span>
-
-                        <span id="marketStatus">
-                            Loading market status...
-                        </span>
-
+                    <div
+                        class="market-name"
+                        id="exchange">
+                        NASDAQ · USD
                     </div>
 
                 </div>
 
 
-                <div class="stock-price-container">
+                <div class="main-price">
 
                     <div
-                        class="price"
-                        id="acbPrice">
-
+                        id="price"
+                        class="loading">
                         $--
-
                     </div>
 
                     <div
-                        class="change"
-                        id="acbChange">
-
+                        id="change"
+                        class="neutral">
                         --
-
                     </div>
 
                 </div>
@@ -905,27 +692,22 @@
             </div>
 
 
-            <div class="stock-meta">
+            <div class="price-footer">
 
                 <span>
 
                     <i class="fas fa-clock"></i>
 
-                    Last update:
+                    Last available price:
 
-                    <span id="lastUpdated">
+                    <strong id="lastUpdated">
                         --
-                    </span>
+                    </strong>
 
                 </span>
 
-
-                <span class="live-indicator">
-
-                    <span class="live-dot"></span>
-
-                    DATA
-
+                <span>
+                    ACB.US
                 </span>
 
             </div>
@@ -933,73 +715,65 @@
         </section>
 
 
-        <!-- ================= QUICK STATS ================= -->
+        <!-- QUICK STATS -->
 
-        <section class="stats-grid">
+        <section class="stats">
 
-            <div class="stat-card">
+            <div class="stat">
 
-                <div class="stat-title">
+                <div class="stat-label">
                     PREVIOUS CLOSE
                 </div>
 
                 <div
                     class="stat-value"
                     id="previousClose">
-
                     $--
-
                 </div>
 
             </div>
 
 
-            <div class="stat-card">
+            <div class="stat">
 
-                <div class="stat-title">
+                <div class="stat-label">
                     DAY HIGH
                 </div>
 
                 <div
                     class="stat-value"
                     id="dayHigh">
-
                     $--
-
                 </div>
 
             </div>
 
 
-            <div class="stat-card">
+            <div class="stat">
 
-                <div class="stat-title">
+                <div class="stat-label">
                     DAY LOW
                 </div>
 
                 <div
                     class="stat-value"
                     id="dayLow">
-
                     $--
-
                 </div>
 
             </div>
 
 
-            <div class="stat-card">
+            <div class="stat">
 
-                <div class="stat-title">
+                <div class="stat-label">
                     VOLUME
                 </div>
 
                 <div
                     class="stat-value"
                     id="volume">
-
                     --
-
                 </div>
 
             </div>
@@ -1007,13 +781,13 @@
         </section>
 
 
-        <!-- ================= PRICE CHART ================= -->
+        <!-- CHART -->
 
-        <section class="chart-container">
+        <section class="card">
 
-            <div class="chart-header">
+            <div class="card-header">
 
-                <div class="chart-title">
+                <div class="card-title">
 
                     <i class="fas fa-chart-line"></i>
 
@@ -1022,38 +796,41 @@
                 </div>
 
 
-                <div class="time-buttons">
+                <div class="periods">
 
                     <button
-                        class="time-btn active"
-                        data-period="1D">
-
+                        class="period active"
+                        data-range="1d"
+                        data-interval="5m">
                         1D
-
                     </button>
 
                     <button
-                        class="time-btn"
-                        data-period="5D">
-
+                        class="period"
+                        data-range="5d"
+                        data-interval="15m">
                         5D
-
                     </button>
 
                     <button
-                        class="time-btn"
-                        data-period="1M">
-
+                        class="period"
+                        data-range="1mo"
+                        data-interval="1h">
                         1M
-
                     </button>
 
                     <button
-                        class="time-btn"
-                        data-period="3M">
-
+                        class="period"
+                        data-range="3mo"
+                        data-interval="1d">
                         3M
+                    </button>
 
+                    <button
+                        class="period"
+                        data-range="1y"
+                        data-interval="1d">
+                        1Y
                     </button>
 
                 </div>
@@ -1061,7 +838,7 @@
             </div>
 
 
-            <div class="chart-wrapper">
+            <div class="chart-box">
 
                 <canvas id="priceChart"></canvas>
 
@@ -1070,179 +847,156 @@
         </section>
 
 
-        <!-- ================= LIVE BID / ASK ================= -->
+        <!-- MARKET DETAILS -->
 
-        <section class="quote-section">
+        <section class="card">
 
-            <div class="section-header">
+            <div class="card-header">
 
-                <div class="section-title">
+                <div class="card-title">
 
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-chart-bar"></i>
 
-                    Live Market Quotes
-
-                </div>
-
-
-                <span class="live-badge">
-                    BID / ASK
-                </span>
-
-            </div>
-
-
-            <div class="order-book">
-
-                <div class="book-column">
-
-                    <div class="book-title buy">
-                        BUY / BID
-                    </div>
-
-                    <div class="book-row">
-
-                        <span
-                            class="bid-price"
-                            id="bidPrice">
-
-                            $--
-
-                        </span>
-
-                        <span
-                            class="size"
-                            id="bidSize">
-
-                            --
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="book-column">
-
-                    <div class="book-title sell">
-                        SELL / ASK
-                    </div>
-
-                    <div class="book-row">
-
-                        <span
-                            class="ask-price"
-                            id="askPrice">
-
-                            $--
-
-                        </span>
-
-                        <span
-                            class="size"
-                            id="askSize">
-
-                            --
-
-                        </span>
-
-                    </div>
+                    Market Details
 
                 </div>
 
             </div>
 
 
-            <div class="spread">
+            <div class="details-grid">
 
-                Bid-Ask Spread:
+                <div class="detail">
 
-                <strong id="spread">
-                    $--
-                </strong>
+                    <div class="detail-label">
+                        SYMBOL
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="symbol">
+                        ACB
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        EXCHANGE
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="exchangeDetail">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        CURRENCY
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="currency">
+                        USD
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        MARKET STATE
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="state">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        DAY RANGE
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dayRange">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        PREVIOUS CLOSE
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="previousClose2">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        52-WEEK HIGH
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="yearHigh">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        52-WEEK LOW
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="yearLow">
+                        --
+                    </div>
+
+                </div>
 
             </div>
 
         </section>
 
 
-        <!-- ================= RECENT TRADES ================= -->
+        <!-- ACTIONS -->
 
-        <section class="quote-section">
-
-            <div class="section-header">
-
-                <div class="section-title">
-
-                    <i class="fas fa-bolt"></i>
-
-                    Recent Market Trades
-
-                </div>
-
-                <span class="live-badge">
-                    MARKET DATA
-                </span>
-
-            </div>
-
-
-            <div style="overflow-x:auto">
-
-                <table class="trade-table">
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                TIME
-                            </th>
-
-                            <th>
-                                PRICE
-                            </th>
-
-                            <th>
-                                SHARES
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody id="tradeFeed">
-
-                        <tr>
-
-                            <td
-                                colspan="3"
-                                class="loading">
-
-                                Waiting for trade data...
-
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= BUY / SELL ================= -->
-
-        <section class="action-buttons">
+        <section class="actions">
 
             <a
                 href="buy.html"
-                class="btn-action btn-buy">
+                class="action buy">
 
                 <i class="fas fa-plus-circle"></i>
 
@@ -1253,7 +1007,7 @@
 
             <a
                 href="sell.html"
-                class="btn-action btn-sell">
+                class="action sell">
 
                 <i class="fas fa-minus-circle"></i>
 
@@ -1264,65 +1018,48 @@
         </section>
 
 
-        <!-- ================= COMPANY ================= -->
+        <!-- ABOUT -->
 
-        <section class="company-section">
+        <section class="card">
 
-            <h3>
+            <div class="card-title">
 
-                <i
-                    class="fas fa-building"
-                    style="color:#34783f">
-                </i>
+                <i class="fas fa-building"></i>
 
                 About Aurora Cannabis
 
-            </h3>
-
-
-            <div id="companyInfo">
-
-                Aurora Cannabis is a Canadian cannabis company
-                whose shares trade under the ticker ACB on
-                NASDAQ and the Toronto Stock Exchange.
-
-                <br><br>
-
-                This page displays market information supplied
-                by the configured market-data service.
-
-                <br><br>
-
-                <strong>
-                    Market data may be delayed and is not an
-                    offer or recommendation to buy or sell
-                    securities.
-                </strong>
-
             </div>
 
-        </section>
+            <p class="info-text">
+
+                Aurora Cannabis Inc. is a Canadian cannabis company
+                whose common shares trade under the symbol
+                <strong>ACB</strong>.
+
+                <br><br>
+
+                This dashboard is designed to display publicly
+                available market information for ACB.
+
+            </p>
 
 
-        <!-- ================= DATA STATUS ================= -->
+            <div class="warning">
 
-        <section class="company-section">
+                <strong>
+                    Market-data notice:
+                </strong>
 
-            <h3>
+                Prices displayed on this page come from a
+                publicly accessible market-data endpoint and
+                may be delayed. They should not be treated as
+                guaranteed real-time exchange prices.
 
-                <i
-                    class="fas fa-server"
-                    style="color:#34783f">
-                </i>
+                <br><br>
 
-                Data Connection
-
-            </h3>
-
-
-            <div id="dataStatus">
-
-                Connecting to market-data file...
+                This page does not provide a direct connection
+                to NASDAQ's order book and does not execute
+                stock trades.
 
             </div>
 
@@ -1331,62 +1068,49 @@
     </main>
 
 
-    <!-- ================= BOTTOM NAV ================= -->
+    <!-- BOTTOM NAV -->
 
     <div class="bottom-nav">
 
-        <div class="nav-inner">
+        <div class="nav">
 
             <a
                 href="index.html"
-                class="nav-item active">
+                class="active">
 
                 <i class="fas fa-home"></i>
-
                 Home
 
             </a>
 
 
-            <a
-                href="buy.html"
-                class="nav-item">
+            <a href="buy.html">
 
                 <i class="fas fa-plus-circle"></i>
-
                 Buy
 
             </a>
 
 
-            <a
-                href="sell.html"
-                class="nav-item">
+            <a href="sell.html">
 
                 <i class="fas fa-minus-circle"></i>
-
                 Sell
 
             </a>
 
 
-            <a
-                href="orders.html"
-                class="nav-item">
+            <a href="orders.html">
 
                 <i class="fas fa-list"></i>
-
                 Orders
 
             </a>
 
 
-            <a
-                href="account.html"
-                class="nav-item">
+            <a href="account.html">
 
                 <i class="fas fa-user"></i>
-
                 Account
 
             </a>
@@ -1402,62 +1126,51 @@
 
     /*
     ============================================================
-       AURORA CANNABIS ACB MARKET DASHBOARD
+    AURORA CANNABIS ACB - CLIENT SIDE MARKET DASHBOARD
     ============================================================
 
-       IMPORTANT:
+    NO EODHD API KEY
+    NO BACKEND
+    NO FIREBASE FUNCTION
 
-       This is a GitHub Pages website.
+    The page requests publicly accessible Yahoo Finance
+    chart data directly from the browser.
 
-       DO NOT PUT YOUR EODHD API TOKEN HERE.
+    Symbol:
+        ACB
 
-       GitHub Pages is public.
+    This is intended for displaying market information.
 
-       GitHub Actions will use:
-
-           EODHD_ACB_TOKEN_API
-
-       and generate:
-
-           data/acb.json
-
-       This page reads:
-
-           data/acb.json
-
-       ============================================================
+    It is NOT a guaranteed real-time exchange feed.
+    ============================================================
     */
 
 
-    const DATA_URL =
-        "./data/acb.json";
+    const SYMBOL = "ACB";
 
+    let chart = null;
 
-    let priceChart = null;
+    let currentRange = "1d";
 
-    let currentPeriod = "1D";
+    let currentInterval = "5m";
 
 
     /* ============================================================
        FORMATTERS
-    ============================================================ */
+       ============================================================ */
 
     function money(value) {
 
         if (
             value === null ||
             value === undefined ||
-            value === "" ||
             Number.isNaN(Number(value))
         ) {
-
             return "$--";
-
         }
 
         return "$" +
             Number(value).toFixed(2);
-
     }
 
 
@@ -1466,17 +1179,13 @@
         if (
             value === null ||
             value === undefined ||
-            value === "" ||
             Number.isNaN(Number(value))
         ) {
-
             return "--";
-
         }
 
         return Number(value)
             .toLocaleString();
-
     }
 
 
@@ -1485,78 +1194,33 @@
         if (
             value === null ||
             value === undefined ||
-            value === "" ||
             Number.isNaN(Number(value))
         ) {
-
             return "--";
-
         }
 
-        const n =
-            Number(value);
+        const n = Number(value);
 
         return (
             (n >= 0 ? "+" : "") +
             n.toFixed(2) +
             "%"
         );
-
     }
 
 
-    function formatTime(value) {
+    function dateTime(timestamp) {
 
-        if (!value) {
-
+        if (!timestamp) {
             return "--";
-
         }
 
-        let date;
+        const date =
+            new Date(
+                Number(timestamp) * 1000
+            );
 
-        if (
-            typeof value === "number" ||
-            /^\d+$/.test(String(value))
-        ) {
-
-            let timestamp =
-                Number(value);
-
-            /*
-              EODHD timestamps may be
-              milliseconds.
-            */
-
-            if (timestamp < 10000000000) {
-
-                timestamp *= 1000;
-
-            }
-
-            date =
-                new Date(timestamp);
-
-        } else {
-
-            date =
-                new Date(value);
-
-        }
-
-
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-
-            return String(value);
-
-        }
-
-
-        return date.toLocaleTimeString(
+        return date.toLocaleString(
             [],
             {
                 hour: "2-digit",
@@ -1564,489 +1228,491 @@
                 second: "2-digit"
             }
         );
+    }
+
+
+    /* ============================================================
+       ERROR
+       ============================================================ */
+
+    function showError(message) {
+
+        const box =
+            document.getElementById(
+                "errorBox"
+            );
+
+        box.textContent =
+            message;
+
+        box.style.display =
+            "block";
+    }
+
+
+    function hideError() {
+
+        document.getElementById(
+            "errorBox"
+        ).style.display =
+            "none";
+    }
+
+
+    /* ============================================================
+       STATUS
+       ============================================================ */
+
+    function setStatus(
+        text,
+        online = false,
+        error = false
+    ) {
+
+        document.getElementById(
+            "marketStatus"
+        ).textContent = text;
+
+
+        const dot =
+            document.getElementById(
+                "statusDot"
+            );
+
+        dot.classList.remove(
+            "online",
+            "error"
+        );
+
+
+        if (online) {
+
+            dot.classList.add(
+                "online"
+            );
+
+        }
+
+        if (error) {
+
+            dot.classList.add(
+                "error"
+            );
+
+        }
 
     }
 
 
     /* ============================================================
-       UPDATE MAIN QUOTE
-    ============================================================ */
+       GET YAHOO CHART DATA
+       ============================================================ */
 
-    function updateQuote(data) {
+    async function getMarketData(
+        range = "1d",
+        interval = "5m"
+    ) {
 
         /*
-          Supports both:
+        Public Yahoo Finance chart endpoint.
 
-          data.price
-
-          and EODHD-style:
-
-          data.lastTradePrice
+        No API key is placed in the browser.
         */
 
-        const price =
-            data.price ??
-            data.lastTradePrice ??
-            data.close;
-
-
-        const change =
-            data.change ??
-            0;
-
-
-        const changePercent =
-            data.changePercent ??
-            data.change_p ??
-            0;
-
-
-        document
-            .getElementById("acbPrice")
-            .textContent =
-                money(price);
-
-
-        const changeElement =
-            document
-                .getElementById("acbChange");
-
-
-        changeElement.textContent =
-            `${Number(change) >= 0 ? "+" : ""}` +
-            `${Number(change).toFixed(2)} ` +
-            `(${percent(changePercent)})`;
-
-
-        changeElement.classList.remove(
-            "positive",
-            "negative"
-        );
-
-
-        changeElement.classList.add(
-            Number(change) >= 0
-                ? "positive"
-                : "negative"
-        );
-
-
-        document
-            .getElementById("previousClose")
-            .textContent =
-                money(
-                    data.previousClose ??
-                    data.previousClosePrice
-                );
-
-
-        document
-            .getElementById("dayHigh")
-            .textContent =
-                money(
-                    data.high
-                );
-
-
-        document
-            .getElementById("dayLow")
-            .textContent =
-                money(
-                    data.low
-                );
-
-
-        document
-            .getElementById("volume")
-            .textContent =
-                number(
-                    data.volume
-                );
-
-
-        document
-            .getElementById("bidPrice")
-            .textContent =
-                money(
-                    data.bid ??
-                    data.bidPrice
-                );
-
-
-        document
-            .getElementById("askPrice")
-            .textContent =
-                money(
-                    data.ask ??
-                    data.askPrice
-                );
-
-
-        document
-            .getElementById("bidSize")
-            .textContent =
-                number(
-                    data.bidSize ??
-                    data.bidSize
-                ) +
-                " shares";
-
-
-        document
-            .getElementById("askSize")
-            .textContent =
-                number(
-                    data.askSize ??
-                    data.askSize
-                ) +
-                " shares";
-
-
-        const bid =
-            Number(
-                data.bid ??
-                data.bidPrice
-            );
-
-
-        const ask =
-            Number(
-                data.ask ??
-                data.askPrice
-            );
-
-
-        if (
-            Number.isFinite(bid) &&
-            Number.isFinite(ask)
-        ) {
-
-            document
-                .getElementById("spread")
-                .textContent =
-                    money(
-                        ask - bid
-                    );
-
-        }
-
-
-        document
-            .getElementById("lastUpdated")
-            .textContent =
-                formatTime(
-                    data.timestamp ??
-                    data.lastTradeTime
-                );
-
-
-        /*
-          Market status
-        */
-
-        const status =
-            String(
-                data.marketStatus ??
-                data.market_status ??
-                "unknown"
-            ).toLowerCase();
-
-
-        const statusElement =
-            document
-                .getElementById("marketStatus");
-
-
-        statusElement.classList.remove(
-            "status-open",
-            "status-closed",
-            "status-error"
-        );
-
-
-        if (
-            status === "open"
-        ) {
-
-            statusElement.textContent =
-                "Market Open";
-
-            statusElement.classList.add(
-                "status-open"
-            );
-
-        }
-
-        else if (
-            status === "extended-hours"
-        ) {
-
-            statusElement.textContent =
-                "Extended Hours";
-
-            statusElement.classList.add(
-                "status-open"
-            );
-
-        }
-
-        else if (
-            status === "closed"
-        ) {
-
-            statusElement.textContent =
-                "Market Closed";
-
-            statusElement.classList.add(
-                "status-closed"
-            );
-
-        }
-
-        else {
-
-            statusElement.textContent =
-                "Market Status Unknown";
-
-        }
-
-
-        document
-            .getElementById("dataStatus")
-            .textContent =
-                "Market data loaded successfully.";
-
-    }
-
-
-    /* ============================================================
-       LOAD MARKET DATA
-    ============================================================ */
-
-    async function loadMarketData() {
-
-        try {
-
-            const response =
-                await fetch(
-                    DATA_URL +
-                    "?t=" +
-                    Date.now(),
-                    {
-                        cache: "no-store"
-                    }
-                );
-
-
-            if (!response.ok) {
-
-                throw new Error(
-                    "Market data file not found."
-                );
-
-            }
-
-
-            const json =
-                await response.json();
-
-
-            /*
-              The GitHub Action can publish either:
-
-              {
-                  "price": ...
-              }
-
-              or:
-
-              {
-                  "data": {
-                      "ACB.US": {...}
-                  }
-              }
-            */
-
-            let data =
-                json;
-
-
-            if (
-                json.data &&
-                json.data["ACB.US"]
-            ) {
-
-                data =
-                    json.data["ACB.US"];
-
-            }
-
-            else if (
-                json.data &&
-                json.data.ACB
-            ) {
-
-                data =
-                    json.data.ACB;
-
-            }
-
-
-            updateQuote(data);
-
-
-            /*
-              If the JSON contains trades,
-              display them.
-            */
-
-            if (
-                Array.isArray(
-                    json.trades
-                )
-            ) {
-
-                updateTrades(
-                    json.trades
-                );
-
-            }
-
-
-        }
-
-        catch (error) {
-
-            console.error(
-                "ACB data error:",
-                error
-            );
-
-
-            document
-                .getElementById(
-                    "marketStatus"
-                )
-                .textContent =
-                    "Data unavailable";
-
-
-            document
-                .getElementById(
-                    "dataStatus"
-                )
-                .innerHTML =
-
-                `<div class="error-message">
-                    Unable to load ACB market data.
-                    Please try again shortly.
-                </div>`;
-
-        }
-
-    }
-
-
-    /* ============================================================
-       TRADES
-    ============================================================ */
-
-    function updateTrades(trades) {
-
-        const tbody =
-            document
-                .getElementById(
-                    "tradeFeed"
-                );
-
-
-        tbody.innerHTML = "";
-
-
-        if (
-            !trades ||
-            trades.length === 0
-        ) {
-
-            tbody.innerHTML = `
-
-                <tr>
-
-                    <td
-                        colspan="3"
-                        class="loading">
-
-                        No recent trade data.
-
-                    </td>
-
-                </tr>
-
-            `;
-
-            return;
-
-        }
-
-
-        trades
-            .slice(0, 15)
-            .forEach(
-                trade => {
-
-                    const row =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    row.innerHTML = `
-
-                        <td>
-                            ${
-                                formatTime(
-                                    trade.timestamp ??
-                                    trade.t
-                                )
-                            }
-                        </td>
-
-                        <td>
-                            ${
-                                money(
-                                    trade.price ??
-                                    trade.p
-                                )
-                            }
-                        </td>
-
-                        <td>
-                            ${
-                                number(
-                                    trade.size ??
-                                    trade.v
-                                )
-                            }
-                        </td>
-
-                    `;
-
-
-                    tbody.appendChild(
-                        row
-                    );
-
+        const url =
+            "https://query1.finance.yahoo.com/v8/finance/chart/" +
+            encodeURIComponent(SYMBOL) +
+            "?range=" +
+            encodeURIComponent(range) +
+            "&interval=" +
+            encodeURIComponent(interval) +
+            "&includePrePost=true";
+
+        const response =
+            await fetch(
+                url,
+                {
+                    cache: "no-store"
                 }
             );
 
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Market data request failed (" +
+                response.status +
+                ")"
+            );
+
+        }
+
+
+        const json =
+            await response.json();
+
+
+        if (
+            !json.chart ||
+            !json.chart.result ||
+            !json.chart.result[0]
+        ) {
+
+            throw new Error(
+                "No ACB market data was returned."
+            );
+
+        }
+
+
+        return json.chart.result[0];
+
     }
 
 
     /* ============================================================
-       CHART
-    ============================================================ */
+       UPDATE PRICE
+       ============================================================ */
 
-    function createChart(labels, prices) {
+    function updatePrice(meta) {
+
+        const price =
+            meta.regularMarketPrice;
+
+
+        const previousClose =
+            meta.previousClose ||
+            meta.chartPreviousClose;
+
+
+        let change = null;
+
+        let changePercent = null;
+
+
+        if (
+            price !== undefined &&
+            previousClose !== undefined
+        ) {
+
+            change =
+                Number(price) -
+                Number(previousClose);
+
+
+            if (previousClose !== 0) {
+
+                changePercent =
+                    (
+                        change /
+                        Number(previousClose)
+                    ) * 100;
+
+            }
+
+        }
+
+
+        document.getElementById(
+            "price"
+        ).textContent =
+            money(price);
+
+
+        const changeElement =
+            document.getElementById(
+                "change"
+            );
+
+
+        if (change !== null) {
+
+            changeElement.textContent =
+                (
+                    change >= 0
+                        ? "+"
+                        : ""
+                ) +
+                Number(change).toFixed(2) +
+                " (" +
+                percent(changePercent) +
+                ")";
+
+
+            changeElement.classList.remove(
+                "positive",
+                "negative",
+                "neutral"
+            );
+
+
+            changeElement.classList.add(
+                change >= 0
+                    ? "positive"
+                    : "negative"
+            );
+
+        }
+
+
+        document.getElementById(
+            "previousClose"
+        ).textContent =
+            money(previousClose);
+
+
+        document.getElementById(
+            "previousClose2"
+        ).textContent =
+            money(previousClose);
+
+
+        document.getElementById(
+            "dayHigh"
+        ).textContent =
+            money(
+                meta.regularMarketDayHigh
+            );
+
+
+        document.getElementById(
+            "dayLow"
+        ).textContent =
+            money(
+                meta.regularMarketDayLow
+            );
+
+
+        document.getElementById(
+            "volume"
+        ).textContent =
+            number(
+                meta.regularMarketVolume
+            );
+
+
+        document.getElementById(
+            "exchange"
+        ).textContent =
+            (
+                meta.exchangeName ||
+                "NASDAQ"
+            ) +
+            " · " +
+            (
+                meta.currency ||
+                "USD"
+            );
+
+
+        document.getElementById(
+            "exchangeDetail"
+        ).textContent =
+            meta.exchangeName ||
+            "--";
+
+
+        document.getElementById(
+            "currency"
+        ).textContent =
+            meta.currency ||
+            "USD";
+
+
+        document.getElementById(
+            "symbol"
+        ).textContent =
+            meta.symbol ||
+            SYMBOL;
+
+
+        document.getElementById(
+            "state"
+        ).textContent =
+            formatMarketState(
+                meta.marketState
+            );
+
+
+        document.getElementById(
+            "yearHigh"
+        ).textContent =
+            money(
+                meta.fiftyTwoWeekHigh
+            );
+
+
+        document.getElementById(
+            "yearLow"
+        ).textContent =
+            money(
+                meta.fiftyTwoWeekLow
+            );
+
+
+        document.getElementById(
+            "dayRange"
+        ).textContent =
+            money(
+                meta.regularMarketDayLow
+            ) +
+            " – " +
+            money(
+                meta.regularMarketDayHigh
+            );
+
+
+        document.getElementById(
+            "lastUpdated"
+        ).textContent =
+            dateTime(
+                meta.regularMarketTime
+            );
+
+
+        document.getElementById(
+            "sourceText"
+        ).textContent =
+            "Public market data";
+
+    }
+
+
+    /* ============================================================
+       MARKET STATE
+       ============================================================ */
+
+    function formatMarketState(state) {
+
+        if (!state) {
+            return "Unknown";
+        }
+
+
+        const states = {
+
+            REGULAR:
+                "Market Open",
+
+            PRE:
+                "Pre-Market",
+
+            POST:
+                "After Hours",
+
+            CLOSED:
+                "Market Closed"
+
+        };
+
+
+        return (
+            states[state] ||
+            state
+        );
+
+    }
+
+
+    /* ============================================================
+       CREATE CHART
+       ============================================================ */
+
+    function createChart(
+        result
+    ) {
+
+        const timestamps =
+            result.timestamp || [];
+
+
+        const quote =
+            result.indicators &&
+            result.indicators.quote &&
+            result.indicators.quote[0];
+
+
+        if (!quote) {
+
+            throw new Error(
+                "Chart prices unavailable."
+            );
+
+        }
+
+
+        const closes =
+            quote.close || [];
+
+
+        const labels = [];
+
+        const prices = [];
+
+
+        for (
+            let i = 0;
+            i < timestamps.length;
+            i++
+        ) {
+
+            const close =
+                closes[i];
+
+
+            if (
+                close === null ||
+                close === undefined
+            ) {
+                continue;
+            }
+
+
+            const date =
+                new Date(
+                    timestamps[i] * 1000
+                );
+
+
+            let label;
+
+
+            if (
+                currentRange === "1d" ||
+                currentRange === "5d"
+            ) {
+
+                label =
+                    date.toLocaleTimeString(
+                        [],
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    );
+
+            } else {
+
+                label =
+                    date.toLocaleDateString(
+                        [],
+                        {
+                            month: "short",
+                            day: "numeric"
+                        }
+                    );
+
+            }
+
+
+            labels.push(label);
+
+            prices.push(
+                Number(close)
+            );
+
+        }
+
 
         const canvas =
             document.getElementById(
@@ -2055,14 +1721,12 @@
 
 
         const ctx =
-            canvas.getContext(
-                "2d"
-            );
+            canvas.getContext("2d");
 
 
-        if (priceChart) {
+        if (chart) {
 
-            priceChart.destroy();
+            chart.destroy();
 
         }
 
@@ -2078,17 +1742,17 @@
 
         gradient.addColorStop(
             0,
-            "rgba(48,119,61,.22)"
+            "rgba(47,112,57,.22)"
         );
 
 
         gradient.addColorStop(
             1,
-            "rgba(48,119,61,.01)"
+            "rgba(47,112,57,.01)"
         );
 
 
-        priceChart =
+        chart =
             new Chart(
                 ctx,
                 {
@@ -2097,20 +1761,20 @@
 
                     data: {
 
-                        labels: labels,
+                        labels,
 
                         datasets: [
 
                             {
 
                                 label:
-                                    "ACB Price",
+                                    "ACB",
 
                                 data:
                                     prices,
 
                                 borderColor:
-                                    "#32783f",
+                                    "#2f7039",
 
                                 backgroundColor:
                                     gradient,
@@ -2122,7 +1786,7 @@
                                     true,
 
                                 tension:
-                                    .25,
+                                    .22,
 
                                 pointRadius:
                                     0,
@@ -2144,7 +1808,6 @@
 
                         maintainAspectRatio:
                             false,
-
 
                         interaction: {
 
@@ -2207,7 +1870,7 @@
                                         7,
 
                                     color:
-                                        "#7a857a",
+                                        "#7b857b",
 
                                     font: {
 
@@ -2236,7 +1899,7 @@
                                 ticks: {
 
                                     color:
-                                        "#7a857a",
+                                        "#7b857b",
 
                                     callback:
                                         function(value) {
@@ -2258,144 +1921,141 @@
                     }
 
                 }
+
             );
 
     }
 
 
     /* ============================================================
-       LOAD CHART DATA
-    ============================================================ */
+       LOAD EVERYTHING
+       ============================================================ */
 
-    async function loadChart(period) {
+    async function loadMarket(
+        range = currentRange,
+        interval = currentInterval
+    ) {
 
         try {
 
-            /*
-              GitHub Actions can generate:
-
-                  data/acb-1d.json
-                  data/acb-5d.json
-                  data/acb-1m.json
-                  data/acb-3m.json
-            */
-
-            const filename =
-                period.toLowerCase();
+            setStatus(
+                "Loading market data...",
+                false,
+                false
+            );
 
 
-            const response =
-                await fetch(
-                    `./data/acb-${filename}.json?t=${Date.now()}`,
-                    {
-                        cache: "no-store"
-                    }
+            hideError();
+
+
+            const result =
+                await getMarketData(
+                    range,
+                    interval
                 );
 
 
-            if (!response.ok) {
-
-                throw new Error(
-                    "Chart data unavailable"
-                );
-
-            }
+            const meta =
+                result.meta;
 
 
-            const data =
-                await response.json();
-
-
-            let rows =
-                Array.isArray(data)
-                    ? data
-                    : (
-                        data.data ||
-                        data.history ||
-                        []
-                    );
-
-
-            const labels =
-                rows.map(
-                    item => {
-
-                        return (
-                            item.datetime ||
-                            item.time ||
-                            item.date
-                        );
-
-                    }
-                );
-
-
-            const prices =
-                rows.map(
-                    item => {
-
-                        return Number(
-                            item.close
-                        );
-
-                    }
-                );
+            updatePrice(meta);
 
 
             createChart(
-                labels,
-                prices
+                result
             );
 
-        }
 
-        catch (error) {
+            setStatus(
+                formatMarketState(
+                    meta.marketState
+                ),
+                true,
+                false
+            );
+
+
+            document
+                .getElementById(
+                    "price"
+                )
+                .classList.remove(
+                    "loading"
+                );
+
+
+        } catch (error) {
 
             console.error(
-                "Chart error:",
+                "ACB market error:",
                 error
             );
 
 
-            /*
-              Do NOT display fake
-              financial prices.
-
-              Instead show a
-              clear message.
-            */
-
-            const canvas =
-                document.getElementById(
-                    "priceChart"
-                );
+            setStatus(
+                "Market data unavailable",
+                false,
+                true
+            );
 
 
-            const ctx =
-                canvas.getContext(
-                    "2d"
-                );
-
-
-            ctx.clearRect(
-                0,
-                0,
-                canvas.width,
-                canvas.height
+            showError(
+                "Unable to retrieve ACB market data right now. " +
+                "The public market-data service may be unavailable " +
+                "or may block browser requests."
             );
 
         }
+
+    }
+
+
+    /* ============================================================
+       REFRESH
+       ============================================================ */
+
+    function refreshAll() {
+
+        const button =
+            document.querySelector(
+                ".refresh-button i"
+            );
+
+
+        button.classList.add(
+            "fa-spin"
+        );
+
+
+        loadMarket()
+            .finally(
+                function() {
+
+                    setTimeout(
+                        function() {
+
+                            button.classList.remove(
+                                "fa-spin"
+                            );
+
+                        },
+                        500
+                    );
+
+                }
+            );
 
     }
 
 
     /* ============================================================
        PERIOD BUTTONS
-    ============================================================ */
+       ============================================================ */
 
     document
         .querySelectorAll(
-            ".time-btn"
+            ".period"
         )
         .forEach(
             button => {
@@ -2406,11 +2066,11 @@
 
                         document
                             .querySelectorAll(
-                                ".time-btn"
+                                ".period"
                             )
                             .forEach(
-                                btn =>
-                                    btn.classList.remove(
+                                b =>
+                                    b.classList.remove(
                                         "active"
                                     )
                             );
@@ -2421,12 +2081,17 @@
                         );
 
 
-                        currentPeriod =
-                            this.dataset.period;
+                        currentRange =
+                            this.dataset.range;
 
 
-                        loadChart(
-                            currentPeriod
+                        currentInterval =
+                            this.dataset.interval;
+
+
+                        loadMarket(
+                            currentRange,
+                            currentInterval
                         );
 
                     }
@@ -2437,68 +2102,44 @@
 
 
     /* ============================================================
+       AUTOMATIC REFRESH
+       ============================================================ */
+
+    /*
+       Refresh the displayed market information every 30 seconds.
+
+       This is NOT a true exchange WebSocket feed.
+    */
+
+    setInterval(
+        function() {
+
+            loadMarket(
+                currentRange,
+                currentInterval
+            );
+
+        },
+        30000
+    );
+
+
+    /* ============================================================
        START
-    ============================================================ */
+       ============================================================ */
 
     document.addEventListener(
         "DOMContentLoaded",
         function() {
 
-            loadMarketData();
-
-            loadChart("1D");
+            loadMarket(
+                "1d",
+                "5m"
+            );
 
         }
     );
 
-
-    /*
-      Refresh market JSON every
-      60 seconds.
-
-      GitHub Actions determines
-      how frequently the JSON is
-      actually updated.
-    */
-
-    setInterval(
-        loadMarketData,
-        60000
-    );
-
-
-    /* ============================================================
-       LOGOUT
-    ============================================================ */
-
-    function logout() {
-
-        if (
-            typeof window.firebaseLogout ===
-            "function"
-        ) {
-
-            window.firebaseLogout();
-
-            return;
-
-        }
-
-
-        console.log(
-            "Connect logout to Firebase."
-        );
-
-    }
-
-</script>
-
-
-<!-- Your Firebase/application JS -->
-
-<script
-    type="module"
-    src="index.js">
 </script>
 
 </body>
