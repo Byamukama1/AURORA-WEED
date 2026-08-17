@@ -4,7 +4,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, serverTimestamp, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, serverTimestamp, increment, runTransaction, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAiC0kYQY5EUzjrqHuU4GNdVEjsIp61tEI",
@@ -29,6 +29,7 @@ let currentPrice = 0;
 let currentDay = '';
 let earningRate = 0;
 let isWeekend = false;
+let marketOpen = false;
 
 // -------------------------------------------------------------
 // 2. AUTH GUARD
@@ -74,15 +75,26 @@ function updateBalanceUI() {
 }
 
 // -------------------------------------------------------------
-// 4. MARKET STATUS & DAY DETECTION
+// 4. MARKET STATUS - NASDAQ Trading Hours
 // -------------------------------------------------------------
 function checkMarketStatus() {
     const now = new Date();
     const day = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTime = hours + minutes / 60;
 
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     currentDay = days[day];
     isWeekend = (day === 0 || day === 6);
+
+    // NASDAQ trading hours: 9:30 AM - 4:00 PM ET
+    // We'll use local time - in production you'd convert to ET
+    const marketOpenTime = 9.5; // 9:30 AM
+    const marketCloseTime = 16.0; // 4:00 PM
+
+    // Market is open on weekdays during trading hours
+    marketOpen = !isWeekend && (currentTime >= marketOpenTime && currentTime < marketCloseTime);
 
     // Earning rates: Monday=6%, Tuesday=5%, Wednesday=4%, Thursday=3%, Friday=2%
     const rates = { 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 0: 0, 6: 0 };
@@ -94,25 +106,42 @@ function checkMarketStatus() {
     const dayDisplay = document.getElementById('marketDay');
 
     if (isWeekend) {
-        statusText.textContent = '🔒 Closed (Weekend)';
+        statusText.textContent = '🔒 Market Closed (Weekend)';
         statusText.style.color = '#dc3545';
         statusIcon.className = 'fas fa-circle closed';
-        dayDisplay.textContent = `📅 ${currentDay} - Selling Day`;
-        document.getElementById('dayBadge').textContent = `📅 ${currentDay} (Selling Day)`;
-        document.getElementById('earningRate').textContent = '🔒 No buying on weekends';
+        dayDisplay.textContent = `📅 ${currentDay} - Market Closed`;
+        document.getElementById('dayBadge').textContent = `📅 ${currentDay} (Market Closed)`;
+        document.getElementById('earningRate').textContent = '🔒 No trading on weekends';
         document.getElementById('earningRate').style.color = '#dc3545';
+    } else if (!marketOpen) {
+        statusText.textContent = '⏰ Market Closed (After Hours)';
+        statusText.style.color = '#ffc107';
+        statusIcon.className = 'fas fa-circle';
+        statusIcon.style.color = '#ffc107';
+        dayDisplay.textContent = `📅 ${currentDay} - After Hours`;
+        document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
+        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${earningRate - 1}%)`;
+        document.getElementById('earningRate').style.color = '#28a745';
     } else {
-        statusText.textContent = '✅ Open for Buying';
+        statusText.textContent = '✅ Market Open';
         statusText.style.color = '#28a745';
         statusIcon.className = 'fas fa-circle open';
-        dayDisplay.textContent = `📅 ${currentDay} - Buying Day`;
+        dayDisplay.textContent = `📅 ${currentDay} - Trading Hours`;
         document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
         document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${earningRate - 1}%)`;
         document.getElementById('earningRate').style.color = '#28a745';
     }
 
-    // Disable buy button on weekends
-    document.querySelector('.btn-buy').disabled = isWeekend;
+    // Disable buy button if market is closed or weekend
+    const buyBtn = document.querySelector('.btn-buy');
+    buyBtn.disabled = !marketOpen || isWeekend;
+    if (buyBtn.disabled) {
+        buyBtn.style.opacity = '0.6';
+        buyBtn.style.cursor = 'not-allowed';
+    } else {
+        buyBtn.style.opacity = '1';
+        buyBtn.style.cursor = 'pointer';
+    }
 }
 
 // -------------------------------------------------------------
@@ -133,7 +162,7 @@ async function fetchStockPrice() {
             changeDisplay.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
             changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
         } else {
-            // Fallback price
+            // Fallback price - use last known price
             currentPrice = 4.52;
             document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
             document.getElementById('priceChange').textContent = '+2.30%';
@@ -171,7 +200,7 @@ function calculateEarnings() {
     const amount = parseFloat(document.getElementById('investAmount').value);
     const preview = document.getElementById('earningsPreview');
 
-    if (!amount || amount <= 0 || isWeekend) {
+    if (!amount || amount <= 0 || isWeekend || !marketOpen) {
         preview.style.display = 'none';
         return;
     }
@@ -193,7 +222,12 @@ function calculateEarnings() {
 // -------------------------------------------------------------
 window.placeBuyOrder = async function() {
     if (isWeekend) {
-        alert('❌ Cannot buy on weekends. Buying is available Monday-Friday.');
+        alert('❌ Cannot buy on weekends. Market is closed.');
+        return;
+    }
+
+    if (!marketOpen) {
+        alert('❌ Market is currently closed. Please trade during market hours (9:30 AM - 4:00 PM ET).');
         return;
     }
 
@@ -271,11 +305,13 @@ Do you want to proceed?`;
                 pricePerShare: currentPrice,
                 shares: shares,
                 day: currentDay,
+                dayIndex: new Date().getDay(),
                 earningRate: earningRate,
                 netRate: netRate,
                 expectedEarnings: expectedEarnings,
                 totalReturn: totalReturn,
                 status: 'pending',
+                marketOpen: marketOpen,
                 createdAt: serverTimestamp(),
                 expectedSettlement: getWeekendDate()
             });
@@ -309,7 +345,7 @@ Settlement: ${getWeekendDate().toLocaleDateString()}`);
         alert(`❌ ${error.message}`);
     } finally {
         const buyBtn = document.querySelector('.btn-buy');
-        buyBtn.disabled = false;
+        buyBtn.disabled = !marketOpen || isWeekend;
         buyBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Buy ACB Shares';
     }
 };
@@ -387,6 +423,15 @@ async function loadBuyOrders() {
 }
 
 // -------------------------------------------------------------
-// 11. ORDER BY IMPORT (for the query above)
+// 11. AUTO-REFRESH MARKET STATUS EVERY MINUTE
 // -------------------------------------------------------------
-import { orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+setInterval(() => {
+    checkMarketStatus();
+}, 60000); // Refresh every minute
+
+// Auto-refresh price every 30 seconds
+setInterval(() => {
+    if (marketOpen) {
+        fetchStockPrice();
+    }
+}, 30000);
