@@ -80,13 +80,12 @@ function checkMarketStatus() {
     const now = new Date();
     const day = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     currentDay = days[day];
     isWeekend = (day === 0 || day === 6);
 
-    // Earning rates based on day (Monday=5%, Tuesday=4%, etc.)
-    const rates = { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 0: 0, 6: 0 };
+    // Earning rates: Monday=6%, Tuesday=5%, Wednesday=4%, Thursday=3%, Friday=2%
+    const rates = { 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 0: 0, 6: 0 };
     earningRate = rates[day] || 0;
 
     // Update UI
@@ -108,7 +107,7 @@ function checkMarketStatus() {
         statusIcon.className = 'fas fa-circle open';
         dayDisplay.textContent = `📅 ${currentDay} - Buying Day`;
         document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
-        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}%`;
+        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${earningRate - 1}%)`;
         document.getElementById('earningRate').style.color = '#28a745';
     }
 
@@ -117,7 +116,7 @@ function checkMarketStatus() {
 }
 
 // -------------------------------------------------------------
-// 5. FETCH STOCK PRICE
+// 5. FETCH STOCK PRICE (same as index.html)
 // -------------------------------------------------------------
 async function fetchStockPrice() {
     try {
@@ -204,4 +203,190 @@ window.placeBuyOrder = async function() {
         return;
     }
 
-    const available = userData
+    const available = userData?.uninvestedBalance || 0;
+    if (amount > available) {
+        alert(`❌ Insufficient balance. You have $${available.toFixed(2)} available.`);
+        return;
+    }
+
+    if (!currentPrice || currentPrice <= 0) {
+        alert('❌ Unable to fetch current stock price. Please try again.');
+        return;
+    }
+
+    // Calculate shares
+    const shares = amount / currentPrice;
+    const netRate = Math.max(0, earningRate - 1);
+    const expectedEarnings = amount * (netRate / 100);
+    const totalReturn = amount + expectedEarnings;
+
+    const confirmMsg = `📊 Order Summary:
+------------------------
+Investment: $${amount.toFixed(2)}
+Buy Day: ${currentDay}
+Price per share: $${currentPrice.toFixed(2)}
+Shares: ${shares.toFixed(4)}
+Earning Rate: ${earningRate}% (Net: ${netRate}%)
+Expected Earnings: $${expectedEarnings.toFixed(2)}
+Total Return (Weekend): $${totalReturn.toFixed(2)}
+
+⚠️ You will receive your investment + earnings on Saturday/Sunday.
+Do you want to proceed?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const buyBtn = document.querySelector('.btn-buy');
+        buyBtn.disabled = true;
+        buyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        // Use transaction for atomic operation
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await transaction.get(userRef);
+
+            if (!userSnap.exists()) {
+                throw new Error("User document not found");
+            }
+
+            const userData = userSnap.data();
+            const currentAvailable = userData.uninvestedBalance || 0;
+
+            if (amount > currentAvailable) {
+                throw new Error(`Insufficient balance. Available: $${currentAvailable.toFixed(2)}`);
+            }
+
+            // Update user balance
+            transaction.update(userRef, {
+                uninvestedBalance: increment(-amount),
+                investedAmount: increment(amount),
+                totalBalance: increment(0) // Will be recalculated
+            });
+
+            // Create order document
+            const orderRef = doc(collection(db, "users", currentUser.uid, "orders"));
+            transaction.set(orderRef, {
+                type: 'buy',
+                amount: amount,
+                pricePerShare: currentPrice,
+                shares: shares,
+                day: currentDay,
+                earningRate: earningRate,
+                netRate: netRate,
+                expectedEarnings: expectedEarnings,
+                totalReturn: totalReturn,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+                expectedSettlement: getWeekendDate()
+            });
+
+            // Add to activity
+            const activityRef = doc(collection(db, "users", currentUser.uid, "activity"));
+            transaction.set(activityRef, {
+                type: 'buy',
+                description: `Bought ACB shares - $${amount.toFixed(2)} at $${currentPrice.toFixed(2)}`,
+                amount: -amount,
+                status: 'pending',
+                createdAt: serverTimestamp()
+            });
+        });
+
+        // Refresh user data
+        await loadUserData();
+        await loadBuyOrders();
+
+        alert(`✅ Buy order placed successfully!
+Investment: $${amount.toFixed(2)}
+Expected Earnings: $${expectedEarnings.toFixed(2)}
+Total Return: $${totalReturn.toFixed(2)}
+Settlement: ${getWeekendDate().toLocaleDateString()}`);
+
+        document.getElementById('investAmount').value = '';
+        document.getElementById('earningsPreview').style.display = 'none';
+
+    } catch (error) {
+        console.error("Error placing buy order:", error);
+        alert(`❌ ${error.message}`);
+    } finally {
+        const buyBtn = document.querySelector('.btn-buy');
+        buyBtn.disabled = false;
+        buyBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Buy ACB Shares';
+    }
+};
+
+// -------------------------------------------------------------
+// 9. GET WEEKEND DATE (Saturday/Sunday settlement)
+// -------------------------------------------------------------
+function getWeekendDate() {
+    const now = new Date();
+    const day = now.getDay();
+    // 6 = Saturday, 0 = Sunday
+    let daysToAdd = 0;
+    if (day === 0) daysToAdd = 6; // Sunday → next Saturday
+    else if (day === 1) daysToAdd = 5; // Monday → Saturday
+    else if (day === 2) daysToAdd = 4; // Tuesday → Saturday
+    else if (day === 3) daysToAdd = 3; // Wednesday → Saturday
+    else if (day === 4) daysToAdd = 2; // Thursday → Saturday
+    else if (day === 5) daysToAdd = 1; // Friday → Saturday
+    else if (day === 6) daysToAdd = 0; // Saturday → Saturday
+
+    const weekendDate = new Date(now);
+    weekendDate.setDate(now.getDate() + daysToAdd);
+    return weekendDate;
+}
+
+// -------------------------------------------------------------
+// 10. LOAD BUY ORDERS
+// -------------------------------------------------------------
+async function loadBuyOrders() {
+    const container = document.getElementById('buyOrders');
+    try {
+        const ordersRef = collection(db, "users", currentUser.uid, "orders");
+        const q = query(ordersRef, where("type", "==", "buy"), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No buy orders yet.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const time = data.createdAt?.toDate?.() || new Date();
+            const timeStr = time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
+            const status = data.status || 'pending';
+            const statusClass = status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'pending';
+
+            html += `
+                <div class="order-item">
+                    <div class="order-info">
+                        <span class="amount">$${data.amount?.toFixed(2) || '0.00'}</span>
+                        <span class="details">${data.day || 'N/A'} · ${data.shares?.toFixed(4) || 0} shares @ $${data.pricePerShare?.toFixed(2) || '0.00'}</span>
+                        <span class="details">Expected: $${data.expectedEarnings?.toFixed(2) || '0.00'} (${data.netRate || 0}% net)</span>
+                    </div>
+                    <span class="order-status ${statusClass}">${status.toUpperCase()}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (error) {
+        console.error("Error loading orders:", error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Could not load orders.</p>
+            </div>
+        `;
+    }
+}
+
+// -------------------------------------------------------------
+// 11. ORDER BY IMPORT (for the query above)
+// -------------------------------------------------------------
+import { orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
