@@ -632,3 +632,80 @@ table td {
         min-width: 40px;
     }
 }
+
+/* Add to existing buy.css */
+
+/* TradingView Container */
+.tradingview-container {
+    background: white;
+    border-radius: 28px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid #e3efe0;
+    box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
+    overflow: hidden;
+}
+
+.tradingview-widget-container {
+    width: 100%;
+    min-height: 400px;
+}
+
+/* Market Status Card */
+.market-status-card {
+    background: white;
+    border-radius: 28px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    border: 1px solid #e3efe0;
+    box-shadow: 0 4px 14px rgba(0, 30, 0, 0.04);
+}
+
+.status-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.status-item .label {
+    font-size: 0.6rem;
+    color: #6b8a6b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-item .value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a3f1a;
+    margin-top: 2px;
+}
+
+.status-item .value.open {
+    color: #28a745;
+}
+
+.status-item .value.closed {
+    color: #dc3545;
+}
+
+.status-item .value.after-hours {
+    color: #ffc107;
+}
+
+@media (max-width: 420px) {
+    .status-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .status-item .value {
+        font-size: 0.85rem;
+    }
+}
