@@ -43,8 +43,10 @@ onAuthStateChanged(auth, async (user) => {
     console.log("✅ User logged in:", user.email);
     await loadUserData();
     await checkMarketStatus();
-    await fetchStockPrice();
     await loadBuyOrders();
+    
+    // Listen for TradingView widget updates
+    setupTradingViewListener();
 });
 
 // -------------------------------------------------------------
@@ -75,64 +77,103 @@ function updateBalanceUI() {
 }
 
 // -------------------------------------------------------------
-// 4. MARKET STATUS - NASDAQ Trading Hours
+// 4. MARKET STATUS from TradingView
 // -------------------------------------------------------------
 function checkMarketStatus() {
     const now = new Date();
-    const day = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const currentTime = hours + minutes / 60;
-
+    const day = now.getDay();
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     currentDay = days[day];
     isWeekend = (day === 0 || day === 6);
-
-    // NASDAQ trading hours: 9:30 AM - 4:00 PM ET
-    // We'll use local time - in production you'd convert to ET
-    const marketOpenTime = 9.5; // 9:30 AM
-    const marketCloseTime = 16.0; // 4:00 PM
-
-    // Market is open on weekdays during trading hours
-    marketOpen = !isWeekend && (currentTime >= marketOpenTime && currentTime < marketCloseTime);
 
     // Earning rates: Monday=6%, Tuesday=5%, Wednesday=4%, Thursday=3%, Friday=2%
     const rates = { 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 0: 0, 6: 0 };
     earningRate = rates[day] || 0;
 
     // Update UI
-    const statusText = document.getElementById('marketStatusText');
-    const statusIcon = document.querySelector('.status-icon i');
-    const dayDisplay = document.getElementById('marketDay');
+    updateDayInfo();
+}
 
+function updateDayInfo() {
+    document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
+    const netRate = Math.max(0, earningRate - 1);
     if (isWeekend) {
-        statusText.textContent = '🔒 Market Closed (Weekend)';
-        statusText.style.color = '#dc3545';
-        statusIcon.className = 'fas fa-circle closed';
-        dayDisplay.textContent = `📅 ${currentDay} - Market Closed`;
-        document.getElementById('dayBadge').textContent = `📅 ${currentDay} (Market Closed)`;
-        document.getElementById('earningRate').textContent = '🔒 No trading on weekends';
+        document.getElementById('earningRate').textContent = '🔒 No buying on weekends';
         document.getElementById('earningRate').style.color = '#dc3545';
-    } else if (!marketOpen) {
-        statusText.textContent = '⏰ Market Closed (After Hours)';
-        statusText.style.color = '#ffc107';
-        statusIcon.className = 'fas fa-circle';
-        statusIcon.style.color = '#ffc107';
-        dayDisplay.textContent = `📅 ${currentDay} - After Hours`;
-        document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
-        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${earningRate - 1}%)`;
-        document.getElementById('earningRate').style.color = '#28a745';
     } else {
-        statusText.textContent = '✅ Market Open';
-        statusText.style.color = '#28a745';
-        statusIcon.className = 'fas fa-circle open';
-        dayDisplay.textContent = `📅 ${currentDay} - Trading Hours`;
-        document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
-        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${earningRate - 1}%)`;
+        document.getElementById('earningRate').textContent = `Earning Rate: ${earningRate}% (Net: ${netRate}%)`;
         document.getElementById('earningRate').style.color = '#28a745';
     }
+}
 
-    // Disable buy button if market is closed or weekend
+// -------------------------------------------------------------
+// 5. TRADINGVIEW WIDGET LISTENER
+// -------------------------------------------------------------
+function setupTradingViewListener() {
+    // Listen for TradingView widget messages
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'tv-widget') {
+            const data = event.data.data;
+            if (data && data.symbols) {
+                const symbol = data.symbols.find(s => s.symbol === 'NASDAQ:ACB');
+                if (symbol) {
+                    updateMarketData(symbol);
+                }
+            }
+        }
+    });
+
+    // Also try to get data from the widget's iframe
+    const widgetContainer = document.querySelector('.tradingview-widget-container');
+    if (widgetContainer) {
+        // Poll for price updates from TradingView iframe
+        setInterval(() => {
+            const priceElement = document.querySelector('.tv-symbol-price');
+            if (priceElement) {
+                const priceText = priceElement.textContent;
+                if (priceText) {
+                    const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+                    if (price && price > 0) {
+                        currentPrice = price;
+                        document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
+                    }
+                }
+            }
+        }, 5000);
+    }
+}
+
+function updateMarketData(symbol) {
+    const price = symbol.price || 0;
+    const change = symbol.change || 0;
+    const changePercent = symbol.changePercent || 0;
+    const marketStatus = symbol.marketStatus || 'closed';
+    const exchange = symbol.exchange || 'NASDAQ';
+
+    currentPrice = price;
+
+    // Update UI
+    document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
+    
+    const changeDisplay = document.getElementById('tvDayChange');
+    changeDisplay.textContent = `${change >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+    changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
+
+    const statusDisplay = document.getElementById('tvMarketStatus');
+    const statusMap = {
+        'open': '✅ Open',
+        'closed': '🔒 Closed',
+        'pre-market': '⏰ Pre-Market',
+        'after-hours': '⏰ After Hours'
+    };
+    statusDisplay.textContent = statusMap[marketStatus] || marketStatus;
+    statusDisplay.className = `value ${marketStatus}`;
+
+    // Update market open status
+    marketOpen = marketStatus === 'open';
+    isWeekend = marketStatus === 'closed' && new Date().getDay() === 0 || new Date().getDay() === 6;
+
+    // Update buy button
     const buyBtn = document.querySelector('.btn-buy');
     buyBtn.disabled = !marketOpen || isWeekend;
     if (buyBtn.disabled) {
@@ -142,39 +183,9 @@ function checkMarketStatus() {
         buyBtn.style.opacity = '1';
         buyBtn.style.cursor = 'pointer';
     }
-}
 
-// -------------------------------------------------------------
-// 5. FETCH STOCK PRICE (same as index.html)
-// -------------------------------------------------------------
-async function fetchStockPrice() {
-    try {
-        const response = await fetch('https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=ACB&apikey=demo');
-        const data = await response.json();
-
-        if (data['Global Quote']) {
-            const quote = data['Global Quote'];
-            currentPrice = parseFloat(quote['05. price']);
-            const change = parseFloat(quote['10. change percent'].replace('%', ''));
-
-            document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
-            const changeDisplay = document.getElementById('priceChange');
-            changeDisplay.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
-            changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
-        } else {
-            // Fallback price - use last known price
-            currentPrice = 4.52;
-            document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
-            document.getElementById('priceChange').textContent = '+2.30%';
-            document.getElementById('priceChange').style.color = '#28a745';
-        }
-    } catch (error) {
-        console.warn('Price fetch error:', error);
-        currentPrice = 4.52;
-        document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
-        document.getElementById('priceChange').textContent = '+2.30%';
-        document.getElementById('priceChange').style.color = '#28a745';
-    }
+    // Calculate earnings preview if amount is entered
+    calculateEarnings();
 }
 
 // -------------------------------------------------------------
@@ -205,7 +216,7 @@ function calculateEarnings() {
         return;
     }
 
-    const netRate = Math.max(0, earningRate - 1); // Company deducts 1%
+    const netRate = Math.max(0, earningRate - 1);
     const earnings = amount * (netRate / 100);
     const total = amount + earnings;
 
@@ -248,7 +259,6 @@ window.placeBuyOrder = async function() {
         return;
     }
 
-    // Calculate shares
     const shares = amount / currentPrice;
     const netRate = Math.max(0, earningRate - 1);
     const expectedEarnings = amount * (netRate / 100);
@@ -274,7 +284,6 @@ Do you want to proceed?`;
         buyBtn.disabled = true;
         buyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
-        // Use transaction for atomic operation
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", currentUser.uid);
             const userSnap = await transaction.get(userRef);
@@ -290,14 +299,11 @@ Do you want to proceed?`;
                 throw new Error(`Insufficient balance. Available: $${currentAvailable.toFixed(2)}`);
             }
 
-            // Update user balance
             transaction.update(userRef, {
                 uninvestedBalance: increment(-amount),
-                investedAmount: increment(amount),
-                totalBalance: increment(0) // Will be recalculated
+                investedAmount: increment(amount)
             });
 
-            // Create order document
             const orderRef = doc(collection(db, "users", currentUser.uid, "orders"));
             transaction.set(orderRef, {
                 type: 'buy',
@@ -316,7 +322,6 @@ Do you want to proceed?`;
                 expectedSettlement: getWeekendDate()
             });
 
-            // Add to activity
             const activityRef = doc(collection(db, "users", currentUser.uid, "activity"));
             transaction.set(activityRef, {
                 type: 'buy',
@@ -327,7 +332,6 @@ Do you want to proceed?`;
             });
         });
 
-        // Refresh user data
         await loadUserData();
         await loadBuyOrders();
 
@@ -351,20 +355,19 @@ Settlement: ${getWeekendDate().toLocaleDateString()}`);
 };
 
 // -------------------------------------------------------------
-// 9. GET WEEKEND DATE (Saturday/Sunday settlement)
+// 9. GET WEEKEND DATE
 // -------------------------------------------------------------
 function getWeekendDate() {
     const now = new Date();
     const day = now.getDay();
-    // 6 = Saturday, 0 = Sunday
     let daysToAdd = 0;
-    if (day === 0) daysToAdd = 6; // Sunday → next Saturday
-    else if (day === 1) daysToAdd = 5; // Monday → Saturday
-    else if (day === 2) daysToAdd = 4; // Tuesday → Saturday
-    else if (day === 3) daysToAdd = 3; // Wednesday → Saturday
-    else if (day === 4) daysToAdd = 2; // Thursday → Saturday
-    else if (day === 5) daysToAdd = 1; // Friday → Saturday
-    else if (day === 6) daysToAdd = 0; // Saturday → Saturday
+    if (day === 0) daysToAdd = 6;
+    else if (day === 1) daysToAdd = 5;
+    else if (day === 2) daysToAdd = 4;
+    else if (day === 3) daysToAdd = 3;
+    else if (day === 4) daysToAdd = 2;
+    else if (day === 5) daysToAdd = 1;
+    else if (day === 6) daysToAdd = 0;
 
     const weekendDate = new Date(now);
     weekendDate.setDate(now.getDate() + daysToAdd);
@@ -421,17 +424,3 @@ async function loadBuyOrders() {
         `;
     }
 }
-
-// -------------------------------------------------------------
-// 11. AUTO-REFRESH MARKET STATUS EVERY MINUTE
-// -------------------------------------------------------------
-setInterval(() => {
-    checkMarketStatus();
-}, 60000); // Refresh every minute
-
-// Auto-refresh price every 30 seconds
-setInterval(() => {
-    if (marketOpen) {
-        fetchStockPrice();
-    }
-}, 30000);
