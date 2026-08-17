@@ -25,9 +25,10 @@
             <a href="account.html" class="btn-back"><i class="fas fa-arrow-left"></i> Account</a>
         </header>
 
-        <!-- TRADINGVIEW WIDGET -->
+        <!-- TRADINGVIEW WIDGET - Shows price and market status directly -->
         <div class="tradingview-container">
             <div class="tradingview-widget-container">
+                <!-- TradingView Widget will render here -->
                 <div class="tradingview-widget-container__widget"></div>
                 <script 
                     type="text/javascript" 
@@ -52,20 +53,20 @@
             </div>
         </div>
 
-        <!-- Market Status from TradingView -->
+        <!-- We'll extract data from TradingView using a simpler approach -->
         <div class="market-status-card" id="marketStatusCard">
             <div class="status-row">
                 <div class="status-item">
                     <span class="label">Market Status</span>
-                    <span class="value" id="tvMarketStatus">Loading...</span>
+                    <span class="value" id="tvMarketStatus">⏳ Loading...</span>
                 </div>
                 <div class="status-item">
                     <span class="label">Current Price</span>
-                    <span class="value" id="tvCurrentPrice">Loading...</span>
+                    <span class="value" id="tvCurrentPrice">⏳ Loading...</span>
                 </div>
                 <div class="status-item">
                     <span class="label">Day Change</span>
-                    <span class="value" id="tvDayChange">Loading...</span>
+                    <span class="value" id="tvDayChange">⏳ Loading...</span>
                 </div>
             </div>
         </div>
