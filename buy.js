@@ -25,7 +25,7 @@ console.log("✅ Firebase initialized");
 
 let currentUser = null;
 let userData = null;
-let currentPrice = 0;
+let currentPrice = 4.52; // Default fallback price
 let currentDay = '';
 let earningRate = 0;
 let isWeekend = false;
@@ -42,11 +42,19 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     console.log("✅ User logged in:", user.email);
     await loadUserData();
-    await checkMarketStatus();
+    checkMarketStatus();
     await loadBuyOrders();
     
-    // Listen for TradingView widget updates
-    setupTradingViewListener();
+    // Start monitoring TradingView data
+    setTimeout(extractTradingViewData, 3000);
+    setInterval(extractTradingViewData, 10000);
+    
+    // Fallback: fetch from Alpha Vantage if TradingView doesn't load
+    setTimeout(() => {
+        if (document.getElementById('tvCurrentPrice').textContent === '⏳ Loading...') {
+            fetchStockPriceFallback();
+        }
+    }, 5000);
 });
 
 // -------------------------------------------------------------
@@ -77,7 +85,132 @@ function updateBalanceUI() {
 }
 
 // -------------------------------------------------------------
-// 4. MARKET STATUS from TradingView
+// 4. EXTRACT DATA FROM TRADINGVIEW WIDGET
+// -------------------------------------------------------------
+function extractTradingViewData() {
+    try {
+        // Try to find price data in the TradingView widget
+        const widgetContainer = document.querySelector('.tradingview-widget-container');
+        if (!widgetContainer) return;
+
+        // Look for price elements within the widget
+        const allElements = widgetContainer.querySelectorAll('*');
+        let foundPrice = false;
+        let priceText = '';
+        let changeText = '';
+        let statusText = '';
+
+        for (const el of allElements) {
+            const text = el.textContent || '';
+            // Look for price pattern (e.g., $4.52 or 4.52)
+            if (text.match(/\$\d+\.\d{2}/) || text.match(/^\d+\.\d{2}$/)) {
+                const match = text.match(/\d+\.\d{2}/);
+                if (match) {
+                    priceText = match[0];
+                    foundPrice = true;
+                }
+            }
+            // Look for change percentage
+            if (text.includes('%') && (text.includes('+') || text.includes('-'))) {
+                const match = text.match(/[+-]\d+\.\d{2}%/);
+                if (match) {
+                    changeText = match[0];
+                }
+            }
+            // Look for market status
+            if (text.includes('Open') || text.includes('Closed') || text.includes('Pre-Market') || text.includes('After Hours')) {
+                if (text.includes('Open')) statusText = 'Open';
+                else if (text.includes('Closed')) statusText = 'Closed';
+                else if (text.includes('Pre-Market')) statusText = 'Pre-Market';
+                else if (text.includes('After Hours')) statusText = 'After Hours';
+            }
+        }
+
+        // Update UI with found data
+        if (foundPrice && priceText) {
+            const price = parseFloat(priceText);
+            if (price > 0) {
+                currentPrice = price;
+                document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
+                document.getElementById('tvCurrentPrice').style.color = '#1a3f1a';
+            }
+        }
+
+        if (changeText) {
+            document.getElementById('tvDayChange').textContent = changeText;
+            const isPositive = changeText.includes('+');
+            document.getElementById('tvDayChange').style.color = isPositive ? '#28a745' : '#dc3545';
+        }
+
+        if (statusText) {
+            document.getElementById('tvMarketStatus').textContent = statusText;
+            const statusMap = {
+                'Open': '#28a745',
+                'Closed': '#dc3545',
+                'Pre-Market': '#ffc107',
+                'After Hours': '#ffc107'
+            };
+            document.getElementById('tvMarketStatus').style.color = statusMap[statusText] || '#1a3f1a';
+            
+            // Update market state
+            marketOpen = statusText === 'Open';
+            isWeekend = statusText === 'Closed' && (new Date().getDay() === 0 || new Date().getDay() === 6);
+            updateBuyButton();
+        }
+
+        // Also try to get data from TradingView's iframe via postMessage
+        const iframes = widgetContainer.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+            try {
+                iframe.contentWindow.postMessage({
+                    type: 'tv-widget-request',
+                    data: { action: 'getData' }
+                }, '*');
+            } catch (e) {
+                // Silently fail - cross-origin restrictions
+            }
+        }
+
+    } catch (error) {
+        console.warn('Error extracting TradingView data:', error);
+    }
+}
+
+// -------------------------------------------------------------
+// 5. FALLBACK: Fetch from Alpha Vantage
+// -------------------------------------------------------------
+async function fetchStockPriceFallback() {
+    try {
+        const response = await fetch('https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=ACB&apikey=demo');
+        const data = await response.json();
+
+        if (data['Global Quote']) {
+            const quote = data['Global Quote'];
+            const price = parseFloat(quote['05. price']);
+            const change = parseFloat(quote['10. change percent'].replace('%', ''));
+
+            if (price > 0) {
+                currentPrice = price;
+                document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
+                document.getElementById('tvCurrentPrice').style.color = '#1a3f1a';
+                
+                const changeDisplay = document.getElementById('tvDayChange');
+                changeDisplay.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
+                
+                document.getElementById('tvMarketStatus').textContent = 'Open (via API)';
+                document.getElementById('tvMarketStatus').style.color = '#28a745';
+                marketOpen = true;
+                updateBuyButton();
+            }
+        }
+    } catch (error) {
+        console.warn('Fallback price fetch error:', error);
+    }
+}
+
+// -------------------------------------------------------------
+// 6. MARKET STATUS & DAY DETECTION
 // -------------------------------------------------------------
 function checkMarketStatus() {
     const now = new Date();
@@ -86,15 +219,10 @@ function checkMarketStatus() {
     currentDay = days[day];
     isWeekend = (day === 0 || day === 6);
 
-    // Earning rates: Monday=6%, Tuesday=5%, Wednesday=4%, Thursday=3%, Friday=2%
     const rates = { 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 0: 0, 6: 0 };
     earningRate = rates[day] || 0;
 
-    // Update UI
-    updateDayInfo();
-}
-
-function updateDayInfo() {
+    // Update day info
     document.getElementById('dayBadge').textContent = `📅 ${currentDay}`;
     const netRate = Math.max(0, earningRate - 1);
     if (isWeekend) {
@@ -107,89 +235,24 @@ function updateDayInfo() {
 }
 
 // -------------------------------------------------------------
-// 5. TRADINGVIEW WIDGET LISTENER
+// 7. UPDATE BUY BUTTON
 // -------------------------------------------------------------
-function setupTradingViewListener() {
-    // Listen for TradingView widget messages
-    window.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'tv-widget') {
-            const data = event.data.data;
-            if (data && data.symbols) {
-                const symbol = data.symbols.find(s => s.symbol === 'NASDAQ:ACB');
-                if (symbol) {
-                    updateMarketData(symbol);
-                }
-            }
-        }
-    });
-
-    // Also try to get data from the widget's iframe
-    const widgetContainer = document.querySelector('.tradingview-widget-container');
-    if (widgetContainer) {
-        // Poll for price updates from TradingView iframe
-        setInterval(() => {
-            const priceElement = document.querySelector('.tv-symbol-price');
-            if (priceElement) {
-                const priceText = priceElement.textContent;
-                if (priceText) {
-                    const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-                    if (price && price > 0) {
-                        currentPrice = price;
-                        document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
-                    }
-                }
-            }
-        }, 5000);
-    }
-}
-
-function updateMarketData(symbol) {
-    const price = symbol.price || 0;
-    const change = symbol.change || 0;
-    const changePercent = symbol.changePercent || 0;
-    const marketStatus = symbol.marketStatus || 'closed';
-    const exchange = symbol.exchange || 'NASDAQ';
-
-    currentPrice = price;
-
-    // Update UI
-    document.getElementById('tvCurrentPrice').textContent = `$${price.toFixed(2)}`;
-    
-    const changeDisplay = document.getElementById('tvDayChange');
-    changeDisplay.textContent = `${change >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
-    changeDisplay.style.color = change >= 0 ? '#28a745' : '#dc3545';
-
-    const statusDisplay = document.getElementById('tvMarketStatus');
-    const statusMap = {
-        'open': '✅ Open',
-        'closed': '🔒 Closed',
-        'pre-market': '⏰ Pre-Market',
-        'after-hours': '⏰ After Hours'
-    };
-    statusDisplay.textContent = statusMap[marketStatus] || marketStatus;
-    statusDisplay.className = `value ${marketStatus}`;
-
-    // Update market open status
-    marketOpen = marketStatus === 'open';
-    isWeekend = marketStatus === 'closed' && new Date().getDay() === 0 || new Date().getDay() === 6;
-
-    // Update buy button
+function updateBuyButton() {
     const buyBtn = document.querySelector('.btn-buy');
-    buyBtn.disabled = !marketOpen || isWeekend;
-    if (buyBtn.disabled) {
-        buyBtn.style.opacity = '0.6';
-        buyBtn.style.cursor = 'not-allowed';
+    const isDisabled = !marketOpen || isWeekend;
+    buyBtn.disabled = isDisabled;
+    buyBtn.style.opacity = isDisabled ? '0.6' : '1';
+    buyBtn.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+    
+    if (isDisabled) {
+        buyBtn.title = marketOpen ? 'Market is closed' : 'Weekend - No trading';
     } else {
-        buyBtn.style.opacity = '1';
-        buyBtn.style.cursor = 'pointer';
+        buyBtn.title = 'Click to buy ACB shares';
     }
-
-    // Calculate earnings preview if amount is entered
-    calculateEarnings();
 }
 
 // -------------------------------------------------------------
-// 6. SET AMOUNT
+// 8. SET AMOUNT
 // -------------------------------------------------------------
 window.setAmount = function(amount) {
     document.getElementById('investAmount').value = amount;
@@ -203,7 +266,7 @@ window.setMaxAmount = function() {
 };
 
 // -------------------------------------------------------------
-// 7. CALCULATE EARNINGS
+// 9. CALCULATE EARNINGS
 // -------------------------------------------------------------
 document.getElementById('investAmount').addEventListener('input', calculateEarnings);
 
@@ -229,7 +292,7 @@ function calculateEarnings() {
 }
 
 // -------------------------------------------------------------
-// 8. PLACE BUY ORDER
+// 10. PLACE BUY ORDER
 // -------------------------------------------------------------
 window.placeBuyOrder = async function() {
     if (isWeekend) {
@@ -355,7 +418,7 @@ Settlement: ${getWeekendDate().toLocaleDateString()}`);
 };
 
 // -------------------------------------------------------------
-// 9. GET WEEKEND DATE
+// 11. GET WEEKEND DATE
 // -------------------------------------------------------------
 function getWeekendDate() {
     const now = new Date();
@@ -375,7 +438,7 @@ function getWeekendDate() {
 }
 
 // -------------------------------------------------------------
-// 10. LOAD BUY ORDERS
+// 12. LOAD BUY ORDERS
 // -------------------------------------------------------------
 async function loadBuyOrders() {
     const container = document.getElementById('buyOrders');
