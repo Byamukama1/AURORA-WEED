@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Account · Aurora Weed</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- External CSS -->
+    <link rel="stylesheet" href="account.css" />
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- HEADER -->
+        <header class="account-header">
+            <div class="logo-title">
+                <img src="https://res.cloudinary.com/dp81zzxlh/image/upload/v1785751860/AM-CBD-Drops-Hybrid-Oil-30ml_bottle-syringe_h9g361.png" alt="Logo" />
+                <div class="brand">
+                    AURORA WEED
+                    <small>My Account</small>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </header>
+
+        <!-- QUICK ACTION BUTTONS -->
+        <div class="quick-actions">
+            <a href="deposit.html" class="action-btn deposit">
+                <i class="fas fa-arrow-down"></i>
+                <span>Deposit</span>
+            </a>
+            <a href="withdraw.html" class="action-btn withdraw">
+                <i class="fas fa-arrow-up"></i>
+                <span>Withdraw</span>
+            </a>
+        </div>
+
+        <!-- BALANCE CARD -->
+        <div class="balance-card">
+            <div class="balance-label">
+                <i class="fas fa-wallet"></i> Total Balance
+            </div>
+            <div class="balance-amount" id="totalBalance">$0.00</div>
+            <div class="balance-details">
+                <div class="balance-item">
+                    <span class="label">Available</span>
+                    <span class="value" id="availableBalance">$0.00</span>
+                </div>
+                <div class="balance-item">
+                    <span class="label">Invested</span>
+                    <span class="value" id="investedBalance">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE SECTION -->
+        <div class="section-card">
+            <h3><i class="fas fa-user-circle"></i> Profile Information</h3>
+            <div class="profile-display" id="profileDisplay">
+                <div class="profile-field">
+                    <span class="label">Username</span>
+                    <span class="value" id="displayUsername">Loading...</span>
+                </div>
+                <div class="profile-field">
+                    <span class="label">Email</span>
+                    <span class="value" id="displayEmail">Loading...</span>
+                </div>
+                <div class="profile-field">
+                    <span class="label">Country</span>
+                    <span class="value" id="displayCountry">Loading...</span>
+                </div>
+                <div class="profile-field">
+                    <span class="label">Currency</span>
+                    <span class="value" id="displayCurrency">USD</span>
+                </div>
+                <button class="btn-edit" onclick="toggleEditProfile()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+            </div>
+
+            <!-- Edit Profile Form -->
+            <div class="profile-edit" id="profileEdit" style="display:none;">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="editUsername" placeholder="Enter username" />
+                </div>
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" id="editCountry" placeholder="Enter country" />
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select id="editCurrency">
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="NGN">NGN - Nigerian Naira</option>
+                        <option value="KES">KES - Kenyan Shilling</option>
+                        <option value="ZAR">ZAR - South African Rand</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn-cancel" onclick="toggleEditProfile()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- WALLET ADDRESSES -->
+        <div class="section-card">
+            <h3><i class="fas fa-address-book"></i> Wallet Addresses</h3>
+            <div class="wallet-list" id="walletList">
+                <div class="empty-state">
+                    <i class="fas fa-plus-circle"></i>
+                    <p>No wallet addresses added yet.</p>
+                </div>
+            </div>
+
+            <!-- Add Wallet Form -->
+            <div class="add-wallet-form">
+                <h4><i class="fas fa-plus-circle"></i> Add New Wallet</h4>
+                <div class="form-group">
+                    <label>Network</label>
+                    <select id="walletNetwork">
+                        <option value="TRC20">USDT TRC20 (TRON)</option>
+                        <option value="BEP20">USDT BEP20 (BNB Chain)</option>
+                        <option value="ERC20">USDT ERC20 (Ethereum)</option>
+                        <option value="SOL">USDC/SOL (Solana)</option>
+                        <option value="BTC">Bitcoin (BTC)</option>
+                        <option value="ETH">Ethereum (ETH)</option>
+                        <option value="LTC">Litecoin (LTC)</option>
+                        <option value="XRP">Ripple (XRP)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Wallet Address</label>
+                    <input type="text" id="walletAddress" placeholder="Enter wallet address" />
+                </div>
+                <div class="form-group">
+                    <label>Label (optional)</label>
+                    <input type="text" id="walletLabel" placeholder="e.g., Main Wallet, Exchange, etc." />
+                </div>
+                <button class="btn-add-wallet" onclick="addWallet()">
+                    <i class="fas fa-plus"></i> Add Wallet
+                </button>
+            </div>
+        </div>
+
+        <!-- RECOMMEND & HELP SECTION -->
+        <div class="section-card">
+            <h3><i class="fas fa-life-ring"></i> Help & Support</h3>
+            <div class="help-grid">
+                <a href="recommend-friend.html" class="help-item">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Recommend a Friend</span>
+                </a>
+                <a href="how-to-deposit.html" class="help-item">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>How to Deposit</span>
+                </a>
+                <a href="how-to-withdraw.html" class="help-item">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>How to Withdraw</span>
+                </a>
+                <a href="support.html" class="help-item">
+                    <i class="fas fa-headset"></i>
+                    <span>Contact Support</span>
+                </a>
+                <a href="faq.html" class="help-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>FAQ</span>
+                </a>
+                <a href="terms.html" class="help-item">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Terms & Conditions</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- RECENT ACTIVITY -->
+        <div class="section-card">
+            <h3><i class="fas fa-history"></i> Recent Activity</h3>
+            <div id="recentActivity">
+                <div class="empty-state">
+                    <i class="fas fa-clock"></i>
+                    <p>No recent activity.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <div class="bottom-nav">
+            <div class="nav-inner">
+                <a href="index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+                <a href="buy.html" class="nav-item"><i class="fas fa-plus-circle"></i> Buy</a>
+                <a href="sell.html" class="nav-item"><i class="fas fa-minus-circle"></i> Sell</a>
+                <a href="orders.html" class="nav-item"><i class="fas fa-list"></i> Orders</a>
+                <a href="account.html" class="nav-item active"><i class="fas fa-user"></i> Account</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script type="module" src="account.js"></script>
+
+</body>
+</html>
